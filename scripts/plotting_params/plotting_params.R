@@ -20,11 +20,16 @@ my_plotting_params[['theme']] <- theme(
   axis.title.x = element_text(size = 18),
   axis.title.y = element_text(size = 18),
   axis.text.x = element_text(size = 12),
-  axis.text.y = element_text(size = 12)
+  axis.text.y = element_text(size = 12),
+  legend.title = element_text(size = 16),
+  legend.text = element_text(size = 14)
 )
 
 my_plotting_params[['formater']] <- ggh4x::force_panelsizes(rows = unit(5, "in"),
                           cols = unit(5, "in"))
+
+my_plotting_params[['formater_long_plot']] <- ggh4x::force_panelsizes(rows = unit(10, "in"),
+                                                            cols = unit(5, "in"))
 
 
 ## 02. HV line
