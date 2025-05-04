@@ -29,7 +29,7 @@ unique_names <- c(
 
 #### Batch fit
 unique_names <- unique_names #c('ovenbi1', 'paibun', 'whimbr', 'lobcur', 'osprey', 'tunswa', 'bkbplo') #c('lobcur') #c('amewoo', 'buwtea', 'swahaw', 'brwhaw', 'woothr') #, 'lobcur',
-# unique_names <- c('yelwar')
+unique_names <- c('norpin')
 for (sp in unique_names){
   print(sp)
   sp_output_path <- paste0('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric','/',sp)
@@ -64,8 +64,8 @@ for (sp in unique_names){
                base_output_path = sp_output_path,
                model_selection = 'distance_metric',
                suffix='interval_based_eval_using_migration_transitions',
-               skip_quality_checks=FALSE,
-               min_season_quality = 3
+               skip_quality_checks=TRUE,
+               min_season_quality = 1
                # fit_only=TRUE
                )
   }, error = function(e) {

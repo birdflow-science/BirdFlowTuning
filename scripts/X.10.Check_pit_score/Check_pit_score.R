@@ -24,4 +24,35 @@ all_res_with_tracking <- res[['all_res_with_tracking']]
 
 ##
 # tmp <- all_res_with_tracking[all_res_with_tracking['method']=='LL',] ## LL as model selection method
-tmp <- all_res_with_tracking[all_res_with_tracking['method']=='ST_and_LL_log',] ## LL as model selection method
+# tmp <- all_res_with_tracking[all_res_with_tracking['method']=='ST_and_LL_log',] ## LL as model selection method
+
+tmp <- raw_combined[raw_combined$sp=='brwhaw',]
+
+tmp <- tmp |> dplyr::mutate(
+  d_pit_row = desirability2::d_min(.data$pit_row, use_data = TRUE),
+  d_pit_col = desirability2::d_min(.data$pit_col, use_data = TRUE),
+  d_pit_in_95 = desirability2::d_min(abs(.data$pit_in_95 - 0.95), use_data = TRUE),
+  pit_d = desirability2::d_overall(dplyr::across(dplyr::starts_with("d_pit")))
+)
+
+plot(
+  tmp$end_traverse_cor,
+  tmp$pit_d
+)
+
+plot(
+  tmp[tmp$end_traverse_cor>0.8,]$end_traverse_cor,
+  tmp[tmp$end_traverse_cor>0.8,]$pit_d
+)
+abline(v = 0.98, col = "red", lty = 2, lwd = 2)
+
+
+plot(
+  tmp$weighted_mean_ll_improvement,
+  tmp$pit_d
+)
+
+
+
+
+

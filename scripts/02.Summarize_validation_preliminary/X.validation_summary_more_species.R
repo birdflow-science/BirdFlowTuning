@@ -13,55 +13,6 @@ load_all("/home/yc85_illinois_edu/BirdFlowR") # if only r script is changed, you
 source('load_data_functions.R')
 source('my_distribution_performance.R')
 
-# 
-# data <- as.data.frame(list(
-#   route_id = c(1, 1, 1, 1, 1, 1),
-#   date = as.Date(c('2021-03-08', '2021-03-18', '2021-03-21', '2021-03-28', '2021-04-09', '2021-04-11')),
-#   lat = c(35.54123, 41.71016, 44.99441, 46.63066, 46.51904, 46.56632),
-#   lon=c(-91.04952, -87.37240, -85.12454, -84.45230, -84.05292, -84.38444),
-#   route_type = c('tracking')
-# ))
-# species1 <- "amewoo"
-# source1 <- "eBird"
-# routes <- Routes(data, species = species1, source = source1)
-# 
-# 
-# 
-# library(dplyr)
-# library(lubridate)
-# 
-# # Define the maximum timestep in a year
-# max_ts <- 52
-# test_df <- data.frame(
-#   route_id = rep(1, 12),
-#   date = as.Date(c("2022-04-11", "2022-04-09", "2022-03-28", "2022-03-21", "2022-03-18", "2022-03-08",
-#                    "2021-04-11", "2021-04-09", "2021-03-28", "2021-03-21", "2021-03-18", "2021-03-08")),
-#   timestep = c(15, 14, 13, 12, 11, 10, 15, 14, 13, 12, 11, 10),
-#   x = c(-539785.92, -189649.33, -2411.61, 49251.47, 80061.76, 54522.12,
-#         -539785.92, -189649.33, -2411.61, 49251.47, 80061.76, 54522.12),
-#   y = c(-384368.4, 285440.7, 647629.8, 829344.2, 817259.1, 822248.4,
-#         -384368.4, 285440.7, 647629.8, 829344.2, 817259.1, 822248.4),
-#   i = c(244, 181, 124, 105, 105, 105, 244, 181, 124, 105, 105, 105),
-#   lat = c(35.54123, 41.71016, 44.99441, 46.63066, 46.51904, 46.56632,
-#           35.54123, 41.71016, 44.99441, 46.63066, 46.51904, 46.56632),
-#   lon = c(-91.04952, -87.37240, -85.12454, -84.45230, -84.05292, -84.38444,
-#           -91.04952, -87.37240, -85.12454, -84.45230, -84.05292, -84.38444),
-#   route_type = rep("tracking", 12)
-# )
-# test_df <- test_df %>%
-#   # Optionally, ensure your data is sorted by date (or the appropriate order for the trajectory)
-#   # Extract the year from the date
-#   dplyr::mutate(year_val = year(date)) %>%
-#   # Compute the effective timestep difference:
-#   dplyr::mutate(
-#     timestep_diff = c(1, diff(year_val) * max_ts + diff(timestep)),
-#     i_change = c(1, diff(i) != 0),
-#     stay_id = cumsum(i_change)
-#   )
-# 
-# test_df
-
-
 ## load data
 res <- load_raw_validation_all_sp()
 raw_combined <- res[['raw_combined']]
@@ -70,21 +21,6 @@ raw_combined_with_tracking <-  res[['raw_combined_with_tracking']]
 res <- load_best_models_validation_all_sp(raw_combined, raw_combined_with_tracking)
 all_res <- res[['all_res']]
 all_res_with_tracking <- res[['all_res_with_tracking']]
-
-# for (sp in raw_combined$sp |> unique()) {
-#   tmp <- raw_combined[(raw_combined$sp==sp),]
-#   plot(tmp$mean_dist_cor, tmp$weighted_mean_ll_improvement)
-# }
-# 
-# for (sp in raw_combined$sp |> unique()) {
-#   tmp <- raw_combined[(raw_combined$sp==sp),]
-#   plot(tmp$end_traverse_cor_log, tmp$weighted_mean_ll_improvement)
-# }
-# 
-# for (sp in raw_combined$sp |> unique()) {
-#   tmp <- raw_combined[(raw_combined$sp==sp),]
-#   plot(tmp$end_traverse_cor_log, tmp$weighted_energy_improvement)
-# }
 
 
 sp <- 'yelwar'
