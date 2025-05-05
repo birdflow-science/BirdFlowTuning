@@ -270,6 +270,7 @@ res <- regress_exponential_decay(
   threshold=150
 )
 p <- res[['p']]
+p <- p + xlim(NA, 4000)
 regression_result <- res[['regression_result']]
 
 # save
@@ -312,6 +313,7 @@ res <- regress_exponential_decay(
   threshold=0.05
 )
 p <- res[['p']]
+p <- p + xlim(NA, 4000)
 regression_result <- res[['regression_result']]
 
 # save
@@ -354,6 +356,7 @@ res <- regress_exponential_decay(
   threshold=0.05
 )
 p <- res[['p']]
+p <- p + xlim(NA, 800)
 regression_result <- res[['regression_result']]
 
 # save
