@@ -19,9 +19,16 @@ load_raw_validation_all_sp <- function() {
     }
     ## Load 1
     train_interval_based <- readRDS(paste0(path,'/eval_metrics_train_distance_metric_all_combined.rds'))
-    if (!'end_traverse_cor_log' %in% names(train_interval_based)) {
+    if (!all(c("end_traverse_cor_log") %in% names(train_interval_based))) {
       next
     }
+    train_interval_based <- train_interval_based |> dplyr::filter(
+        (!is.na(.data[['pit_row']])) & (!is.na(.data[['pit_col']])) & (!is.na(.data[['pit_in_95']]))
+      )
+    if (nrow(train_interval_based) == 0){
+      next
+    }
+    
     train_interval_based$weighted_mean_ll_improvement <- train_interval_based$weighted_mean_ll - train_interval_based$weighted_mean_null_ll
     train_interval_based$mean_ll_improvement <- train_interval_based$mean_ll - train_interval_based$mean_null_ll
     train_interval_based <- train_interval_based |> dplyr::filter((!is.na(.data[['pit_row']])) & (!is.na(.data[['pit_col']])) & (!is.na(.data[['pit_in_95']])))
@@ -69,20 +76,27 @@ load_raw_validation_all_sp <- function() {
   common_cols <- Reduce(intersect, lapply(raw_combined, names))
   raw_combined <- do.call(rbind, lapply(raw_combined, function(df) df[, common_cols, drop = FALSE]))
   raw_combined$sp <- sub("(.*)_2022_150km_.*\\.hdf5$", "\\1", raw_combined$model)
-  raw_combined$model_param <- sub(".*_2022_150km_(.*)\\.hdf5$", "\\1", raw_combined$model)
-  ent <- as.numeric(sub(".*_ent([0-9.]+)_dist.*", "\\1", raw_combined$model))
-  dist <- as.numeric(sub(".*_dist([0-9.]+)_pow.*", "\\1", raw_combined$model))
-  pow <- as.numeric(sub(".*_pow([0-9.]+)\\.hdf5", "\\1", raw_combined$model))
-  raw_combined <- cbind(raw_combined, data.frame(ent, dist, pow))
   
   common_cols <- Reduce(intersect, lapply(raw_combined_with_tracking, names))
   raw_combined_with_tracking <- do.call(rbind, lapply(raw_combined_with_tracking, function(df) df[, common_cols, drop = FALSE]))
   raw_combined_with_tracking$sp <- sub("(.*)_2022_150km_.*\\.hdf5$", "\\1", raw_combined_with_tracking$model)
+  
+  library(stringr)
+  pattern <- paste0("_ent([0-9\\.]+(?:[eE][+-]?[0-9]+)?)",
+                    "_dist([0-9\\.]+(?:[eE][+-]?[0-9]+)?)",
+                    "_pow([0-9\\.]+(?:[eE][+-]?[0-9]+)?)",
+                    "\\.hdf5$")
+  m <- str_match(raw_combined$model, pattern)
+  raw_combined$ent  <- as.numeric(m[,2])
+  raw_combined$dist <- as.numeric(m[,3])
+  raw_combined$pow  <- as.numeric(m[,4])
+  raw_combined$model_param <- sub(".*_2022_150km_(.*)\\.hdf5$", "\\1", raw_combined$model)
+  
+  m <- str_match(raw_combined_with_tracking$model, pattern)
+  raw_combined_with_tracking$ent  <- as.numeric(m[,2])
+  raw_combined_with_tracking$dist <- as.numeric(m[,3])
+  raw_combined_with_tracking$pow  <- as.numeric(m[,4])
   raw_combined_with_tracking$model_param <- sub(".*_2022_150km_(.*)\\.hdf5$", "\\1", raw_combined_with_tracking$model)
-  ent <- as.numeric(sub(".*_ent([0-9.]+)_dist.*", "\\1", raw_combined_with_tracking$model))
-  dist <- as.numeric(sub(".*_dist([0-9.]+)_pow.*", "\\1", raw_combined_with_tracking$model))
-  pow <- as.numeric(sub(".*_pow([0-9.]+)\\.hdf5", "\\1", raw_combined_with_tracking$model))
-  raw_combined_with_tracking <- cbind(raw_combined_with_tracking, data.frame(ent, dist, pow))
   
   return(list(raw_combined=raw_combined, raw_combined_with_tracking=raw_combined_with_tracking))
 }
@@ -574,6 +588,23 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
   all_res_with_tracking <- dplyr::bind_rows(all_res_with_tracking)
   print(paste0('Total species: ', length(all_res$sp |> unique())))
   print(paste0('Total species with tracking: ', all_res_with_tracking$sp |> unique() |> length()))
+  
+  
+  library(stringr)
+  pattern <- paste0("_ent([0-9\\.]+(?:[eE][+-]?[0-9]+)?)",
+                    "_dist([0-9\\.]+(?:[eE][+-]?[0-9]+)?)",
+                    "_pow([0-9\\.]+(?:[eE][+-]?[0-9]+)?)",
+                    "\\.hdf5$")
+  m <- str_match(all_res$model, pattern)
+  all_res$ent  <- as.numeric(m[,2])
+  all_res$dist <- as.numeric(m[,3])
+  all_res$pow  <- as.numeric(m[,4])
+  all_res$model_param <- sub(".*_2022_150km_(.*)\\.hdf5$", "\\1", all_res$model)
+  m <- str_match(all_res_with_tracking$model, pattern)
+  all_res_with_tracking$ent  <- as.numeric(m[,2])
+  all_res_with_tracking$dist <- as.numeric(m[,3])
+  all_res_with_tracking$pow  <- as.numeric(m[,4])
+  all_res_with_tracking$model_param <- sub(".*_2022_150km_(.*)\\.hdf5$", "\\1", all_res_with_tracking$model)
   
   return(list(all_res=all_res, all_res_with_tracking=all_res_with_tracking))
 }

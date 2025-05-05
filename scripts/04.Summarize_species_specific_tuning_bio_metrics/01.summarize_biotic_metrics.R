@@ -2,6 +2,7 @@ library(ggplot2)
 library(BirdFlowR)
 library(BirdFlowPipeline)
 library(devtools)
+library(dplyr)
 
 setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/04.Summarize_species_specific_tuning_bio_metrics/')
 source('../plotting_params/plotting_params.R')
@@ -11,6 +12,7 @@ all_res_with_tracking <- read.csv('../../data/03.All_validation_summary/validati
 
 ## 01. Do conditional route stats
 tmp <- all_res_with_tracking[all_res_with_tracking['method']=='ST098_and_LL',] ## ST098_and_LL as model selection method
+tmp <- tmp |> dplyr::group_by(.data[['sp']]) |> dplyr::slice(1) |> dplyr::ungroup()
 
 all_conditional_rts_stats_res <- list()
 MSE <- list()

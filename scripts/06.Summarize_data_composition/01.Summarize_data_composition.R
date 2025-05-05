@@ -3,11 +3,12 @@ library(BirdFlowR)
 library(BirdFlowPipeline)
 library(devtools)
 
-setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/04.Summarize_species_specific_tuning_bio_metrics/')
+setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/06.Summarize_data_composition/')
 source('../plotting_params/plotting_params.R')
 source('../02.Summarize_validation_preliminary/load_data_functions.R')
 
 all_res <- read.csv('../../data/03.All_validation_summary/validation_final_summary_filtered.csv')
+all_res <- all_res |> dplyr::group_by(.data[['sp']], .data[['method']]) |> dplyr::slice(1) |> dplyr::ungroup()
 
 ## 01. Load data
 tmp <- all_res[all_res['method']=='ST098_and_LL',] ## ST098_and_LL as model selection method

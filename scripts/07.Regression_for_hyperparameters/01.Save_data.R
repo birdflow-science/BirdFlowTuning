@@ -2,28 +2,13 @@ library(BirdFlowR)
 library(BirdFlowPipeline)
 library(devtools)
 
-setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/05.Regression_for_hyperparameters/')
-
-load_all("/home/yc85_illinois_edu/BirdFlowPipeline") # if only r script is changed, you can do it. Otherwise reinstall.
-load_all("/home/yc85_illinois_edu/BirdFlowR") # if only r script is changed, you can do it. Otherwise reinstall.
-
-source('../02.Summarize_validation_preliminary/load_data_functions.R')
-
-## load data
-res <- load_raw_validation_all_sp()
-raw_combined <- res[['raw_combined']]
-raw_combined_with_tracking <-  res[['raw_combined_with_tracking']]
-
-res <- load_best_models_validation_all_sp(raw_combined, raw_combined_with_tracking)
-all_res <- res[['all_res']]
-all_res_with_tracking <- res[['all_res_with_tracking']]
+setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/07.Regression_for_hyperparameters/')
 
 ##
-all_res$base_method <- gsub('LOO_', '', all_res$method)
-all_res$method_variation <- ifelse(grepl("^LOO_", all_res$method), "LOO", "species-specific")
-
-##
-all_res <- all_res[(all_res$base_method=='ST_and_LL_log') & (all_res$method=='ST_and_LL_log'),] # Remove th LOO
+all_res <- read.csv('../../data/03.All_validation_summary/validation_final_summary_filtered.csv')
+# results <- results |> dplyr::group_by(.data[['sp']], .data[['method']]) |> dplyr::slice(1) |> dplyr::ungroup()
+# Keep all the rows for potential phylogenetic regression
+all_res <- all_res[all_res$method=='ST098_and_LL',]
 
 #
 res <- list()
@@ -33,7 +18,7 @@ for (sp in all_res$sp) {
   print(sp)
   print(sp_count)
   
-  model_name <- all_res[all_res$sp==sp,]$model
+  model_name <- c(all_res[all_res$sp==sp,]$model)[1]
   model_path <- glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/{model_name}')
   model <- import_birdflow(model_path)
   
@@ -121,20 +106,8 @@ for (sp in all_res$sp) {
 res <- as.data.frame(do.call(rbind, res))
 all_res <- all_res |> merge(res, by.x='sp', by.y='sp', all.x=T)
 
-# obs <- as.numeric(sub(".*_obs([0-9.]+)_ent.*", "\\1", all_res$model))
-ent <- as.numeric(sub(".*_ent([0-9.]+)_dist.*", "\\1", all_res$model))
-dist <- as.numeric(sub(".*_dist([0-9.]+)_pow.*", "\\1", all_res$model))
-pow <- as.numeric(sub(".*_pow([0-9.]+)\\.hdf5", "\\1", all_res$model))
-all_res <- cbind(all_res, data.frame(ent, dist, pow))
-
-## Merge species traits data
-trait_data <- read.csv('../../data/00.sp_info/All_combined_eco_function_traits.csv')
-all_res <- all_res |>
-  merge(ebirdst::ebirdst_runs[,c('species_code', 'common_name')], by.x = 'sp', by.y = 'species_code', all.x=T) |>
-  merge(trait_data, by.x='common_name', by.y='Common_Name1_eBird', all.x=T)
-
 ##
-write.csv(all_res, '../../data/03.All_validation_summary/Best_models_by_ST_and_LL_validation_summaries.csv')
+write.csv(all_res, '../../data/08.Regression_for_hyperparameters/Best_models_by_ST098_and_LL_validation_summaries_with_range_stats.csv')
 
 
 

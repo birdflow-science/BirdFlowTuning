@@ -4,8 +4,8 @@ library(devtools)
 
 setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/02.Summarize_validation_preliminary/')
 
-load_all("/home/yc85_illinois_edu/BirdFlowPipeline") # if only r script is changed, you can do it. Otherwise reinstall.
-load_all("/home/yc85_illinois_edu/BirdFlowR") # if only r script is changed, you can do it. Otherwise reinstall.
+# load_all("/home/yc85_illinois_edu/BirdFlowPipeline") # if only r script is changed, you can do it. Otherwise reinstall.
+# load_all("/home/yc85_illinois_edu/BirdFlowR") # if only r script is changed, you can do it. Otherwise reinstall.
 
 source('load_data_functions.R')
 
@@ -15,21 +15,15 @@ res <- load_raw_validation_all_sp()
 raw_combined <- res[['raw_combined']]
 raw_combined_with_tracking <-  res[['raw_combined_with_tracking']]
 
-write.csv(raw_combined, '../../data/03.All_validation_summary/validation_all_models_gridsearch_summary.csv', quote=TRUE, row.names=F)
-write.csv(raw_combined_with_tracking, '../../data/03.All_validation_summary/validation_all_models_gridsearch_tracking_sp_only_summary.csv', quote=TRUE, row.names=F)
-
 ## Summarize the best models based on model selection method
 res <- load_best_models_validation_all_sp(raw_combined, raw_combined_with_tracking, include_taxomany_LOO=TRUE)
 all_res <- res[['all_res']] # this will be saved later, after merging with other information
 all_res_with_tracking <- res[['all_res_with_tracking']]
 
-write.csv(all_res_with_tracking, '../../data/03.All_validation_summary/validation_compare_methods_tracking_sp_only_summary.csv', quote=TRUE, row.names=F)
-
 ### Step 2: tears apart hyperparameters
 ## isolate the parameters
 library(stringr)
-pattern <- "_ent([0-9\\.]+(?:[eE][+-]?[0-9]+)?)"   # ent group
-pattern <- paste0(pattern,
+pattern <- paste0("_ent([0-9\\.]+(?:[eE][+-]?[0-9]+)?)",
                   "_dist([0-9\\.]+(?:[eE][+-]?[0-9]+)?)",
                   "_pow([0-9\\.]+(?:[eE][+-]?[0-9]+)?)",
                   "\\.hdf5$")
@@ -71,6 +65,15 @@ data_summary <- do.call(rbind.data.frame, data_summary)
 merged_df <- all_res |> merge(
   data_summary, by.x = 'sp', by.y = 'sp', all.x=T
 )
+raw_combined <- raw_combined |> merge(
+  data_summary, by.x = 'sp', by.y = 'sp', all.x=T
+)
+raw_combined_with_tracking <- raw_combined_with_tracking |> merge(
+  data_summary, by.x = 'sp', by.y = 'sp', all.x=T
+)
+all_res_with_tracking <- all_res_with_tracking |> merge(
+  data_summary, by.x = 'sp', by.y = 'sp', all.x=T
+)
 
 ### Step 4: get S&T model quality
 merged_df <- merged_df |> merge(
@@ -85,13 +88,23 @@ trait_data <- read.csv('../../data/00.sp_info/All_combined_eco_function_traits.c
 merged_df <- merged_df |>
   merge(trait_data, by.x = 'common_name', by.y = 'Common_Name1_eBird', all.x=T)
 
+### Step 6: Filter out species with n_training_transition < 10
+merged_df <- merged_df[
+  (merged_df$train_n_banding + merged_df$train_n_tracking + merged_df$train_n_motus > 10) &
+    (merged_df$test_n_banding + merged_df$test_n_tracking + merged_df$test_n_motus > 10)
+  ,]
+raw_combined <- raw_combined[raw_combined$sp %in% merged_df$sp|>unique(),]
+raw_combined_with_tracking <- raw_combined_with_tracking[raw_combined_with_tracking$sp %in% merged_df$sp|>unique(),]
+all_res_with_tracking <- all_res_with_tracking[all_res_with_tracking$sp %in% merged_df$sp|>unique(),]
+
 ## Finally 1: Save the data
-# write.table(merged_df, '../../data/03.All_validation_summary/validation_final_summary.tsv', quote=FALSE, row.names=F, sep = '\t')
-write.csv(merged_df, '../../data/03.All_validation_summary/validation_final_summary.csv', quote=TRUE, row.names=F)
+write.csv(merged_df, '../../data/03.All_validation_summary/validation_final_summary.csv', quote=TRUE, row.names=F) # Main dataset
+write.csv(raw_combined, '../../data/03.All_validation_summary/validation_all_models_gridsearch_summary.csv', quote=TRUE, row.names=F)
+write.csv(raw_combined_with_tracking, '../../data/03.All_validation_summary/validation_all_models_gridsearch_tracking_sp_only_summary.csv', quote=TRUE, row.names=F)
+write.csv(all_res_with_tracking, '../../data/03.All_validation_summary/validation_compare_methods_tracking_sp_only_summary.csv', quote=TRUE, row.names=F)
 
 ## Finally 2: Save the data
 merged_df_filtered <- merged_df[merged_df$method %in% c('ST098_and_LL', 'LOO_ST098_and_LL', 'LOO_FAMILY_ST098_and_LL', 'LOO_ORDER_ST098_and_LL'),]
-# write.table(merged_df_filtered, '../../data/03.All_validation_summary/validation_final_summary_filtered.tsv', quote=FALSE, row.names=F, sep = '\t')
 write.csv(merged_df_filtered, '../../data/03.All_validation_summary/validation_final_summary_filtered.csv', quote=TRUE, row.names=F)
 
 

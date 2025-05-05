@@ -14,6 +14,7 @@ source('../plotting_params/plotting_params.R')
 
 ## 01. Load data
 all_res <- read.csv('../../data/03.All_validation_summary/validation_final_summary_filtered.csv')
+all_res <- all_res |> dplyr::group_by(.data[['sp']], .data[['method']]) |> dplyr::slice(1) |> dplyr::ungroup()
 
 ##
 all_res$base_method <- gsub("^LOO(?:_FAMILY|_ORDER)?_", "", all_res$method)
@@ -180,8 +181,180 @@ cairo_pdf('../../data/06.Compare_species_specific_and_LOO/06.LL_advantages_and_d
 print(p)
 dev.off()
 
+## plot 7: Three lines together, using LL
+# 1. x: all-LOO; y: Species-specific
+# 2. x: all-LOO; y: Family-LOO
+# 3. x: all-LOO; y: Order-LOO
+all_res <- all_res[all_res$base_method=="ST098_and_LL",]
+all_res$method
+
+all_res_long <- all_res[,c('sp', 'method_variation', 'weighted_mean_ll_improvement')] |> 
+  dplyr::group_by(.data[['sp']], .data[['method_variation']]) |> 
+  dplyr::slice(1) |>
+  dplyr::ungroup() |>
+  tidyr::pivot_wider(
+    id_cols = sp,
+    names_from = method_variation,
+    values_from = weighted_mean_ll_improvement
+  )
+is_na <- is.na(all_res_long$LOO_FAMILY)
+all_res_long$LOO_FAMILY <- ifelse(is.na(all_res_long$LOO_FAMILY), all_res_long[['species-specific']], all_res_long$LOO_FAMILY)
+all_res_long$LOO_ORDER <- ifelse(is.na(all_res_long$LOO_ORDER), all_res_long[['species-specific']], all_res_long$LOO_ORDER)
+
+p <- ggplot(data=all_res_long) + 
+  geom_point(aes(x=.data[['LOO']], y=.data[['species-specific']]),
+             shape = 21, size=3, alpha=0.7,
+             fill = "steelblue",
+             color = "black",
+             stroke = 0.5) + 
+  geom_smooth(method='lm', aes(x=.data[['LOO']], y=.data[['species-specific']], color = "Species-specific"),
+              fill='steelblue', alpha=0.2) +
+  geom_point(aes(x=.data[['LOO']], y=.data[['LOO_FAMILY']]),
+             shape = 21, size=3, alpha=0.7,
+             fill = "orange2",
+             color = "black",
+             stroke = 0.5) + 
+  geom_smooth(method='lm', aes(x=.data[['LOO']], y=.data[['LOO_FAMILY']], color = "Family-LOO"),
+              fill='orange2', alpha=0.2) +
+  geom_point(aes(x=.data[['LOO']], y=.data[['LOO_ORDER']]),
+             shape = 21, size=3, alpha=0.7,
+             fill = "green3",
+             color = "black",
+             stroke = 0.5) + 
+  geom_smooth(method='lm', aes(x=.data[['LOO']], y=.data[['LOO_ORDER']], color = "Order-LOO"),
+              fill='green3', alpha=0.2) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "red2") +
+  scale_color_manual(
+    name   = "Method",
+    values = c(
+      "Species-specific" = "steelblue",
+      "Family-LOO"  = "orange2",
+      "Order-LOO"  = "green3"
+    )
+  ) +
+  labs(x='Log likelihood for All-LOO (baseline)', y='Log likelihood') +
+  my_plotting_params[['theme']] +
+  my_plotting_params[['formater']]
+  
+
+cairo_pdf('../../data/06.Compare_species_specific_and_LOO/07.All_three_methods_LL.pdf',
+          width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
+print(p)
+dev.off()
 
 
+## plot 8: Three lines together, using Relative distance gain
+all_res_long <- all_res[,c('sp', 'method_variation', 'weighted_mean_win_distance_fraction')] |> 
+  dplyr::group_by(.data[['sp']], .data[['method_variation']]) |> 
+  dplyr::slice(1) |>
+  dplyr::ungroup() |>
+  tidyr::pivot_wider(
+    id_cols = sp,
+    names_from = method_variation,
+    values_from = weighted_mean_win_distance_fraction
+  )
+is_na <- is.na(all_res_long$LOO_FAMILY)
+all_res_long$LOO_FAMILY <- ifelse(is.na(all_res_long$LOO_FAMILY), all_res_long[['species-specific']], all_res_long$LOO_FAMILY)
+all_res_long$LOO_ORDER <- ifelse(is.na(all_res_long$LOO_ORDER), all_res_long[['species-specific']], all_res_long$LOO_ORDER)
+
+p <- ggplot(data=all_res_long) + 
+  geom_point(aes(x=.data[['LOO']], y=.data[['species-specific']]),
+             shape = 21, size=3, alpha=0.7,
+             fill = "steelblue",
+             color = "black",
+             stroke = 0.5) + 
+  geom_smooth(method='lm', aes(x=.data[['LOO']], y=.data[['species-specific']], color = "Species-specific"),
+              fill='steelblue', alpha=0.2) +
+  geom_point(aes(x=.data[['LOO']], y=.data[['LOO_FAMILY']]),
+             shape = 21, size=3, alpha=0.7,
+             fill = "orange2",
+             color = "black",
+             stroke = 0.5) + 
+  geom_smooth(method='lm', aes(x=.data[['LOO']], y=.data[['LOO_FAMILY']], color = "Family-LOO"),
+              fill='orange2', alpha=0.2) +
+  geom_point(aes(x=.data[['LOO']], y=.data[['LOO_ORDER']]),
+             shape = 21, size=3, alpha=0.7,
+             fill = "green3",
+             color = "black",
+             stroke = 0.5) + 
+  geom_smooth(method='lm', aes(x=.data[['LOO']], y=.data[['LOO_ORDER']], color = "Order-LOO"),
+              fill='green3', alpha=0.2) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "red2") +
+  scale_color_manual(
+    name   = "Method",
+    values = c(
+      "Species-specific" = "steelblue",
+      "Family-LOO"  = "orange2",
+      "Order-LOO" = "green3"
+    )
+  ) +
+  labs(x='Relative distance gain\nfor All-LOO (baseline)', y='Relative distance gain') +
+  my_plotting_params[['theme']] +
+  my_plotting_params[['formater']]
+
+
+cairo_pdf('../../data/06.Compare_species_specific_and_LOO/07.All_three_methods_Relative_distance_gain.pdf',
+          width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
+print(p)
+dev.off()
+
+
+## plot 9: Three lines together, using distance gain
+all_res_long <- all_res[,c('sp', 'method_variation', 'weighted_mean_win_distance')] |> 
+  dplyr::group_by(.data[['sp']], .data[['method_variation']]) |> 
+  dplyr::slice(1) |>
+  dplyr::ungroup() |>
+  tidyr::pivot_wider(
+    id_cols = sp,
+    names_from = method_variation,
+    values_from = weighted_mean_win_distance
+  )
+is_na <- is.na(all_res_long$LOO_FAMILY)
+all_res_long$LOO_FAMILY <- ifelse(is.na(all_res_long$LOO_FAMILY), all_res_long[['species-specific']], all_res_long$LOO_FAMILY)
+all_res_long$LOO_ORDER <- ifelse(is.na(all_res_long$LOO_ORDER), all_res_long[['species-specific']], all_res_long$LOO_ORDER)
+
+p <- ggplot(data=all_res_long) + 
+  geom_point(aes(x=.data[['LOO']], y=.data[['species-specific']]),
+             shape = 21, size=3, alpha=0.7,
+             fill = "steelblue",
+             color = "black",
+             stroke = 0.5) + 
+  geom_smooth(method='lm', aes(x=.data[['LOO']], y=.data[['species-specific']], color = "Species-specific"),
+              fill='steelblue', alpha=0.2) +
+  geom_point(aes(x=.data[['LOO']], y=.data[['LOO_FAMILY']]),
+             shape = 21, size=3, alpha=0.7,
+             fill = "orange2",
+             color = "black",
+             stroke = 0.5) + 
+  geom_smooth(method='lm', aes(x=.data[['LOO']], y=.data[['LOO_FAMILY']], color = "Family-LOO"),
+              fill='orange2', alpha=0.2) +
+  geom_point(aes(x=.data[['LOO']], y=.data[['LOO_ORDER']]),
+             shape = 21, size=3, alpha=0.7,
+             fill = "green3",
+             color = "black",
+             stroke = 0.5) + 
+  geom_smooth(method='lm', aes(x=.data[['LOO']], y=.data[['LOO_ORDER']], color = "Order-LOO"),
+              fill='green3', alpha=0.2) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "red2") +
+  scale_color_manual(
+    name   = "Method",
+    values = c(
+      "Species-specific" = "steelblue",
+      "Family-LOO"  = "orange2",
+      "Order-LOO"= "green3"
+    )
+  ) +
+  labs(x='Distance gain (km)\nfor All-LOO (baseline)', y='Distance gain (km)') +
+  scale_x_log10() +
+  scale_y_log10() +
+  my_plotting_params[['theme']] +
+  my_plotting_params[['formater']]
+
+
+cairo_pdf('../../data/06.Compare_species_specific_and_LOO/07.All_three_methods_Distance_gain.pdf',
+          width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
+print(p)
+dev.off()
 
 
 

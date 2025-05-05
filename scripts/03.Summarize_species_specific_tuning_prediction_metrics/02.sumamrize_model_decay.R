@@ -3,11 +3,13 @@ library(ggeffects)
 library(lme4)
 library(ggeffects)
 library(minpack.lm)
+library(dplyr)
 
 setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/03.Summarize_species_specific_tuning_prediction_metrics/')
 source('../plotting_params/plotting_params.R')
 source('../02.Summarize_validation_preliminary/load_data_functions.R')
 results <- read.csv('../../data/03.All_validation_summary/validation_final_summary_filtered.csv')
+results <- results |> dplyr::group_by(.data[['sp']]) |> dplyr::slice(1) |> dplyr::ungroup()
 
 regress <- function(data,
                     response_var="win",

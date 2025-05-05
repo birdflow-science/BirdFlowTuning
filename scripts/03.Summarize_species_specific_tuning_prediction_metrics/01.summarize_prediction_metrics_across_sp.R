@@ -2,6 +2,7 @@ library(ggplot2)
 setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/03.Summarize_species_specific_tuning_prediction_metrics/')
 source('../plotting_params/plotting_params.R')
 results <- read.csv('../../data/03.All_validation_summary/validation_final_summary_filtered.csv')
+results <- results |> dplyr::group_by(.data[['sp']]) |> dplyr::slice(1) |> dplyr::ungroup()
 
 ## Plot 1: Species specific-tuning actually works!
 p <- ggplot(data=results[results$method=='ST098_and_LL',], aes(x=.data[['weighted_mean_ll_improvement']])) +
