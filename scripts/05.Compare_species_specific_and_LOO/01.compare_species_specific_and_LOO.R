@@ -293,7 +293,7 @@ p <- ggplot(data=all_res_long) +
   my_plotting_params[['formater']]
 
 
-cairo_pdf('../../data/06.Compare_species_specific_and_LOO/07.All_three_methods_Relative_distance_gain.pdf',
+cairo_pdf('../../data/06.Compare_species_specific_and_LOO/08.All_three_methods_Relative_distance_gain.pdf',
           width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
 print(p)
 dev.off()
@@ -351,10 +351,227 @@ p <- ggplot(data=all_res_long) +
   my_plotting_params[['formater']]
 
 
-cairo_pdf('../../data/06.Compare_species_specific_and_LOO/07.All_three_methods_Distance_gain.pdf',
+cairo_pdf('../../data/06.Compare_species_specific_and_LOO/09.All_three_methods_Distance_gain.pdf',
           width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
 print(p)
 dev.off()
 
+## plot 10: Three together, but histogram, using LL
+all_res_long <- all_res[,c('sp', 'method_variation', 'weighted_mean_ll_improvement')] |> 
+  dplyr::group_by(.data[['sp']], .data[['method_variation']]) |> 
+  dplyr::slice(1) |>
+  dplyr::ungroup() |>
+  tidyr::pivot_wider(
+    id_cols = sp,
+    names_from = method_variation,
+    values_from = weighted_mean_ll_improvement
+  )
+is_na <- is.na(all_res_long$LOO_FAMILY)
+all_res_long$LOO_FAMILY <- ifelse(is.na(all_res_long$LOO_FAMILY), all_res_long[['species-specific']], all_res_long$LOO_FAMILY)
+all_res_long$LOO_ORDER <- ifelse(is.na(all_res_long$LOO_ORDER), all_res_long[['species-specific']], all_res_long$LOO_ORDER)
+
+# subtract
+all_res_long$LOO_FAMILY <- all_res_long$LOO_FAMILY - all_res_long$LOO
+all_res_long$LOO_ORDER <- all_res_long$LOO_ORDER - all_res_long$LOO
+all_res_long$`species-specific` <- all_res_long$`species-specific` - all_res_long$LOO
+all_res_long$`Species-specific` <- all_res_long$`species-specific`
+all_res_long$`Family-LOO` <- all_res_long$`LOO_FAMILY`
+all_res_long$`Order-LOO` <- all_res_long$`LOO_ORDER`
+
+df_long <- all_res_long |>
+  select(`Species-specific`, `Family-LOO`, `Order-LOO`) |>
+  pivot_longer(
+    cols = everything(),
+    names_to = "method",
+    values_to = "LOO"
+  )
+df_long$method <- factor(df_long$method, levels = c("Order-LOO", "Family-LOO", "Species-specific"))
+means <- df_long |>
+  group_by(method) |>
+  summarise(median_val = median(LOO, na.rm = TRUE),
+            mean_val = mean(LOO, na.rm = TRUE))
+
+p <- ggplot(df_long, aes(x = LOO, fill = method)) +
+  geom_histogram(bins = 30, color = "black") +
+  geom_vline(data = means, aes(xintercept = mean_val),
+             color = "red", linetype = "dashed", linewidth = 1) +
+  facet_wrap(~ method, ncol = 1, scales = "free_y") +
+  scale_fill_manual(values = c(
+    "Species-specific" = "steelblue",
+    "Family-LOO"       = "orange2",
+    "Order-LOO"        = "green3"
+  )) +
+  theme(
+    panel.background = element_blank(),    # no gray
+    panel.grid       = element_blank(),    # no grid
+    axis.line        = element_blank(),    # remove default axes
+    panel.border     = element_rect(       # add a black border
+      colour = "black", 
+      fill   = NA, 
+      linewidth   = 1
+    ),
+    axis.title.x = element_text(size = 18),
+    axis.title.y = element_text(size = 18),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    strip.text = element_text(size = 16, face = "bold"),
+    legend.position = "none"
+  ) + 
+  labs(x='Log likelihood improvement over All-LOO', y='Species count') +
+  ggh4x::force_panelsizes(rows = unit(2, "in"),
+                              cols = unit(5, "in"))
+
+cairo_pdf('../../data/06.Compare_species_specific_and_LOO/10.All_three_methods_LL_hist.pdf',
+          width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
+print(p)
+dev.off()
+
+
+## plot 11: Three together, but histogram, using relative distance gain
+all_res_long <- all_res[,c('sp', 'method_variation', 'weighted_mean_win_distance_fraction')] |> 
+  dplyr::group_by(.data[['sp']], .data[['method_variation']]) |> 
+  dplyr::slice(1) |>
+  dplyr::ungroup() |>
+  tidyr::pivot_wider(
+    id_cols = sp,
+    names_from = method_variation,
+    values_from = weighted_mean_win_distance_fraction
+  )
+is_na <- is.na(all_res_long$LOO_FAMILY)
+all_res_long$LOO_FAMILY <- ifelse(is.na(all_res_long$LOO_FAMILY), all_res_long[['species-specific']], all_res_long$LOO_FAMILY)
+all_res_long$LOO_ORDER <- ifelse(is.na(all_res_long$LOO_ORDER), all_res_long[['species-specific']], all_res_long$LOO_ORDER)
+
+# subtract
+all_res_long$LOO_FAMILY <- all_res_long$LOO_FAMILY - all_res_long$LOO
+all_res_long$LOO_ORDER <- all_res_long$LOO_ORDER - all_res_long$LOO
+all_res_long$`species-specific` <- all_res_long$`species-specific` - all_res_long$LOO
+all_res_long$`Species-specific` <- all_res_long$`species-specific`
+all_res_long$`Family-LOO` <- all_res_long$`LOO_FAMILY`
+all_res_long$`Order-LOO` <- all_res_long$`LOO_ORDER`
+
+df_long <- all_res_long |>
+  select(`Species-specific`, `Family-LOO`, `Order-LOO`) |>
+  pivot_longer(
+    cols = everything(),
+    names_to = "method",
+    values_to = "LOO"
+  )
+df_long$method <- factor(df_long$method, levels = c("Order-LOO", "Family-LOO", "Species-specific"))
+means <- df_long |>
+  group_by(method) |>
+  summarise(median_val = median(LOO, na.rm = TRUE),
+            mean_val = mean(LOO, na.rm = TRUE))
+
+p <- ggplot(df_long, aes(x = LOO, fill = method)) +
+  geom_histogram(bins = 30, color = "black") +
+  geom_vline(data = means, aes(xintercept = mean_val),
+             color = "red", linetype = "dashed", linewidth = 1) +
+  facet_wrap(~ method, ncol = 1, scales = "free_y") +
+  scale_fill_manual(values = c(
+    "Species-specific" = "steelblue",
+    "Family-LOO"       = "orange2",
+    "Order-LOO"        = "green3"
+  )) +
+  theme(
+    panel.background = element_blank(),    # no gray
+    panel.grid       = element_blank(),    # no grid
+    axis.line        = element_blank(),    # remove default axes
+    panel.border     = element_rect(       # add a black border
+      colour = "black", 
+      fill   = NA, 
+      linewidth   = 1
+    ),
+    axis.title.x = element_text(size = 18),
+    axis.title.y = element_text(size = 18),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    strip.text = element_text(size = 16, face = "bold"),
+    legend.position = "none"
+  ) + 
+  labs(x='Relative distance gain improvement\nover All-LOO', y='Species count') +
+  ggh4x::force_panelsizes(rows = unit(2, "in"),
+                          cols = unit(5, "in"))
+
+cairo_pdf('../../data/06.Compare_species_specific_and_LOO/11.All_three_methods_Relative_distance_gain_hist.pdf',
+          width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
+print(p)
+dev.off()
+
+
+## plot 12: Three together, but histogram, using distance gain
+all_res_long <- all_res[,c('sp', 'method_variation', 'weighted_mean_win_distance')] |> 
+  dplyr::group_by(.data[['sp']], .data[['method_variation']]) |> 
+  dplyr::slice(1) |>
+  dplyr::ungroup() |>
+  tidyr::pivot_wider(
+    id_cols = sp,
+    names_from = method_variation,
+    values_from = weighted_mean_win_distance
+  )
+is_na <- is.na(all_res_long$LOO_FAMILY)
+all_res_long$LOO_FAMILY <- ifelse(is.na(all_res_long$LOO_FAMILY), all_res_long[['species-specific']], all_res_long$LOO_FAMILY)
+all_res_long$LOO_ORDER <- ifelse(is.na(all_res_long$LOO_ORDER), all_res_long[['species-specific']], all_res_long$LOO_ORDER)
+
+# subtract
+all_res_long$LOO_FAMILY <- all_res_long$LOO_FAMILY - all_res_long$LOO
+all_res_long$LOO_ORDER <- all_res_long$LOO_ORDER - all_res_long$LOO
+all_res_long$`species-specific` <- all_res_long$`species-specific` - all_res_long$LOO
+all_res_long$`Species-specific` <- all_res_long$`species-specific`
+all_res_long$`Family-LOO` <- all_res_long$`LOO_FAMILY`
+all_res_long$`Order-LOO` <- all_res_long$`LOO_ORDER`
+
+df_long <- all_res_long |>
+  select(`Species-specific`, `Family-LOO`, `Order-LOO`) |>
+  pivot_longer(
+    cols = everything(),
+    names_to = "method",
+    values_to = "LOO"
+  )
+df_long$method <- factor(df_long$method, levels = c("Order-LOO", "Family-LOO", "Species-specific"))
+means <- df_long |>
+  group_by(method) |>
+  summarise(median_val = median(LOO, na.rm = TRUE),
+            mean_val = mean(LOO, na.rm = TRUE))
+
+p <- ggplot(df_long, aes(x = LOO, fill = method)) +
+  geom_histogram(bins = 30, color = "black") +
+  geom_vline(data = means, aes(xintercept = mean_val),
+             color = "red", linetype = "dashed", linewidth = 1) +
+  facet_wrap(~ method, ncol = 1, scales = "free_y") +
+  scale_fill_manual(values = c(
+    "Species-specific" = "steelblue",
+    "Family-LOO"       = "orange2",
+    "Order-LOO"        = "green3"
+  )) +
+  theme(
+    panel.background = element_blank(),    # no gray
+    panel.grid       = element_blank(),    # no grid
+    axis.line        = element_blank(),    # remove default axes
+    panel.border     = element_rect(       # add a black border
+      colour = "black", 
+      fill   = NA, 
+      linewidth   = 1
+    ),
+    axis.title.x = element_text(size = 18),
+    axis.title.y = element_text(size = 18),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    strip.text = element_text(size = 16, face = "bold"),
+    legend.position = "none"
+  ) + 
+  labs(x='Distance gain improvement\nover All-LOO (km)', y='Species count') +
+  ggh4x::force_panelsizes(rows = unit(2, "in"),
+                          cols = unit(5, "in"))
+
+cairo_pdf('../../data/06.Compare_species_specific_and_LOO/12.All_three_methods_distance_gain_hist.pdf',
+          width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
+print(p)
+dev.off()
 
 

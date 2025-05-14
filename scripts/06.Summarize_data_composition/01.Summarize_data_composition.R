@@ -5,7 +5,7 @@ library(devtools)
 
 setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/06.Summarize_data_composition/')
 source('../plotting_params/plotting_params.R')
-source('../02.Summarize_validation_preliminary/load_data_functions.R')
+# source('../02.Summarize_validation_preliminary/load_data_functions.R')
 
 all_res <- read.csv('../../data/03.All_validation_summary/validation_final_summary_filtered.csv')
 all_res <- all_res |> dplyr::group_by(.data[['sp']], .data[['method']]) |> dplyr::slice(1) |> dplyr::ungroup()
@@ -82,9 +82,9 @@ p <- ggplot(df2) +
   scale_fill_manual(
     name   = "Data type",
     values = c(
-      Banding  = "steelblue",
-      Motus    = "#009E73",
-      Tracking = "#E69F00"
+      Banding  = "steelblue2",
+      Motus    = "chartreuse4",
+      Tracking = "orange2"
     )
   ) +
   coord_cartesian(expand = FALSE) +
@@ -97,7 +97,7 @@ p <- ggplot(df2) +
   )
 
 cairo_pdf('../../data/07.Summarize_data_composition/data_composition.pdf',
-          width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']]*2, family = my_plotting_params[['font']])
+          width = my_plotting_params[['single_plot_width']]*0.7, height = my_plotting_params[['single_plot_height']]*1.6, family = my_plotting_params[['font']])
 print(p)
 dev.off()
 

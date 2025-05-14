@@ -56,7 +56,6 @@ for (line_count in 1:dim(tmp)[1]) {
   conditional_rts_stats_res <- as.data.frame(do.call(rbind, all_route_stats))
   conditional_rts_stats_res$sp <- sp
   all_conditional_rts_stats_res[[length(all_conditional_rts_stats_res) + 1]] <- conditional_rts_stats_res
-  
 
   mse_straightness <- mean(na.omit((conditional_rts_stats_res$straightness_real - conditional_rts_stats_res$straightness_synth))^2)
   mse_n_stopovers <- mean(na.omit((conditional_rts_stats_res$n_stopovers_real - conditional_rts_stats_res$n_stopovers_synth))^2)
@@ -142,13 +141,111 @@ for (sp in all_conditional_rts_stats_res$sp|>unique()) {
     my_plotting_params[['formater']]
   
   all_plots[[length(all_plots) + 1]] <- p3
-
 }
+
 
 library(gridExtra)
 n_row <- 6
 n_col <- 3
-pdf(glue::glue("../../data/05.Summarize_biological_metrics/bio_sanity_check.pdf"), width = my_plotting_params[['single_plot_width']]*1*n_col, height = my_plotting_params[['single_plot_height']]*1.2*n_row)  # Adjust PDF dimensions as needed
+pdf(glue::glue("../../data/05.Summarize_biological_metrics/01.bio_sanity_check.pdf"), width = my_plotting_params[['single_plot_width']]*1*n_col, height = my_plotting_params[['single_plot_height']]*1.2*n_row)  # Adjust PDF dimensions as needed
 gridExtra::grid.arrange(grobs = all_plots, ncol = n_col)  # Adjust 'ncol' to control the number of plots per row
+dev.off()
+
+
+### 03. Make it in one plot: migration speed
+new_all_conditional_rts_stats_res <- 
+  all_conditional_rts_stats_res[,c('sp', 'common_name', 'speed_synth', 'speed_real')] |>
+  na.omit()
+trans_breaks_x <- seq(
+  sqrt(min(new_all_conditional_rts_stats_res$speed_real) + 1),
+  sqrt(max(new_all_conditional_rts_stats_res$speed_real) + 1),
+  length.out = 5
+)
+orig_breaks_x <- trans_breaks_x**2 - 1
+
+trans_breaks_y <- seq(
+  sqrt(min(new_all_conditional_rts_stats_res$speed_synth) + 1),
+  sqrt(max(new_all_conditional_rts_stats_res$speed_synth) + 1),
+  length.out = 5
+)
+orig_breaks_y <- trans_breaks_y**2 - 1
+
+p <- ggplot(new_all_conditional_rts_stats_res, 
+       aes(x = (speed_real+1)^(1/2), y=(speed_synth+1)^(1/2), color = common_name, fill = common_name)) +
+  geom_point(alpha = 0.5) +
+  # geom_smooth(method='lm', aes(color=common_name), alpha = 0.1) +
+  scale_color_brewer(palette = "Paired", name = "Species") +
+  scale_fill_brewer(palette = "Paired", name = "Species") +
+  labs(x = 'Observed migration speed (km/day)', y = 'Modeled migration speed (km/day)') +
+  geom_abline(intercept = 0,
+              slope = 1,
+              color = "red2",
+              linetype = "dashed") +
+  scale_x_continuous(
+    breaks = trans_breaks_x,
+    labels = round(orig_breaks_x/1000, 0)
+  ) +
+  scale_y_continuous(
+    breaks = trans_breaks_y,
+    labels = round(orig_breaks_y/1000, 0)
+  ) +
+  my_plotting_params[['theme']] +
+  my_plotting_params[['formater']]
+
+# save
+cairo_pdf('../../data/05.Summarize_biological_metrics/02.migration_speed_all_in_one.pdf',
+          width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
+print(p)
+dev.off()
+
+
+### 04. Make it in one plot: n_stopovers
+new_all_conditional_rts_stats_res <- 
+  all_conditional_rts_stats_res[,c('sp', 'common_name', 'n_stopovers_synth', 'n_stopovers_real')] |>
+  na.omit()
+p <- ggplot(new_all_conditional_rts_stats_res, 
+            aes(x = n_stopovers_real, y=n_stopovers_synth, color = common_name, fill = common_name)) +
+  geom_jitter(alpha = 0.5, width=0.1, height = 0.1) +
+  geom_smooth(method='lm', aes(color=common_name), alpha = 0.1) +
+  scale_color_brewer(palette = "Paired", name = "Species") +
+  scale_fill_brewer(palette = "Paired", name = "Species") +
+  labs(x = 'Observed number of stopovers\n(staylength > 7 days)', y = 'Modeled number of stopovers\n(staylength > 7 days)') +
+  geom_abline(intercept = 0,
+              slope = 1,
+              color = "red2",
+              linetype = "dashed") +
+  my_plotting_params[['theme']] +
+  my_plotting_params[['formater']]
+
+# save
+cairo_pdf('../../data/05.Summarize_biological_metrics/03.n_stopovers_all_in_one.pdf',
+          width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
+print(p)
+dev.off()
+
+
+
+### 03. Make it in one plot: straightness
+new_all_conditional_rts_stats_res <- 
+  all_conditional_rts_stats_res[,c('sp', 'common_name', 'straightness_synth', 'straightness_real')] |>
+  na.omit()
+p <- ggplot(new_all_conditional_rts_stats_res, 
+            aes(x = straightness_real, y=straightness_synth, color = common_name, fill = common_name)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method='lm', aes(color=common_name), alpha = 0.1) +
+  scale_color_brewer(palette = "Paired", name = "Species") +
+  scale_fill_brewer(palette = "Paired", name = "Species") +
+  labs(x = 'Observed route straightness', y = 'Modeled route straightness') +
+  geom_abline(intercept = 0,
+              slope = 1,
+              color = "red2",
+              linetype = "dashed") +
+  my_plotting_params[['theme']] +
+  my_plotting_params[['formater']]
+
+# save
+cairo_pdf('../../data/05.Summarize_biological_metrics/04.straightness_all_in_one.pdf',
+          width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
+print(p)
 dev.off()
 

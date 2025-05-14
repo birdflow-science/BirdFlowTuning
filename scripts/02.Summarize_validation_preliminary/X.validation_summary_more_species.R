@@ -3,15 +3,8 @@ library(BirdFlowPipeline)
 library(devtools)
 
 setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/02.Summarize_validation_preliminary/')
-
-devtools::install_local("/home/yc85_illinois_edu/BirdFlowR", force = T, dependencies = FALSE) # if the BirdFlowR is updated, we need to reinstall it, so that i can be used in BirdFlowPipeline!
-devtools::install_local("/home/yc85_illinois_edu/BirdFlowPipeline", force = T, dependencies = FALSE)
-
-load_all("/home/yc85_illinois_edu/BirdFlowPipeline") # if only r script is changed, you can do it. Otherwise reinstall.
-load_all("/home/yc85_illinois_edu/BirdFlowR") # if only r script is changed, you can do it. Otherwise reinstall.
-
 source('load_data_functions.R')
-source('my_distribution_performance.R')
+# source('my_distribution_performance.R')
 
 ## load data
 res <- load_raw_validation_all_sp()
@@ -80,16 +73,12 @@ plot(raw_combined[(raw_combined$sp==sp),]$end_traverse_cor,
 
 ##
 tmp <- raw_combined[raw_combined$sp==sp,]
-plot(tmp$end_traverse_cor, tmp$end_traverse_cor_log)
-plot(tmp[tmp$end_traverse_cor_log>0.8,]$end_traverse_cor, 
-     tmp[tmp$end_traverse_cor_log>0.8,]$end_traverse_cor_log)
-
-tmp1 <- raw_combined_log_obs[(raw_combined_log_obs$sp==sp),][raw_combined_log_obs[(raw_combined_log_obs$sp==sp),]$weighted_mean_ll_improvement>2.5,]
-tmp <- raw_combined[(raw_combined$sp==sp),][raw_combined[(raw_combined$sp==sp),]$weighted_mean_ll_improvement>2.5,]
+# tmp1 <- raw_combined_log_obs[(raw_combined_log_obs$sp==sp),][raw_combined_log_obs[(raw_combined_log_obs$sp==sp),]$weighted_mean_ll_improvement>2.5,]
+# tmp <- raw_combined[(raw_combined$sp==sp),][raw_combined[(raw_combined$sp==sp),]$weighted_mean_ll_improvement>2.5,]
 
 ##
 model <- BirdFlowR::import_birdflow(
-  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), tmp[(tmp['end_traverse_cor']>0.8) & (tmp['end_traverse_cor']<0.9),]$model[1])
+  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), tmp[(tmp['min_dist_cor']>0.8) & (tmp['min_dist_cor']<0.9),]$model[1])
 )
 plot(plot(BirdFlowR::route(
   model,
@@ -111,73 +100,35 @@ plot(res[[1]], res[[2]])
 res <- my_distribution_performance(model, season = 'prebreeding', log=T)
 plot(res[[1]], res[[2]])
 
+
 ##
-model <- BirdFlowR::import_birdflow(
-  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), tmp[(tmp['end_traverse_cor']>0.97) & (tmp['end_traverse_cor']<0.99),]$model[1])
-)
-plot(plot(BirdFlowR::route(
-  model,
-  n=500)))
-res <- my_distribution_performance(model, season = 'prebreeding', log=F)
-plot(res[[1]], res[[2]])
-res <- my_distribution_performance(model, season = 'prebreeding', log=T)
-plot(res[[1]], res[[2]])
+sp <- 'amewoo'
+tmp <- raw_combined[raw_combined$sp==sp,]
 
 ##
 model <- BirdFlowR::import_birdflow(
-  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), tmp[(tmp['end_traverse_cor_log']>0.4) & (tmp['end_traverse_cor_log']<0.5),]$model[1])
+  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), tmp[(tmp['mean_dist_cor']>0.8) & (tmp['mean_dist_cor']<0.9),]$model[1])
 )
 plot(plot(BirdFlowR::route(
   model,
-  n=500)))
+  n=100)))
 
 ##
 model <- BirdFlowR::import_birdflow(
-  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), tmp[(tmp['end_traverse_cor_log']>0.5) & (tmp['end_traverse_cor_log']<0.6),]$model[1])
+  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), tmp[(tmp['mean_dist_cor']>0.95) & (tmp['mean_dist_cor']<0.98),]$model[1])
 )
 plot(plot(BirdFlowR::route(
   model,
-  n=500)))
+  n=100)))
 
 
 ##
 model <- BirdFlowR::import_birdflow(
-  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), tmp[(tmp['end_traverse_cor_log']>0.6) & (tmp['end_traverse_cor_log']<0.7),]$model[1])
+  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), tmp[(tmp['mean_dist_cor']>0.98) & (tmp['mean_dist_cor']<1),]$model[1])
 )
 plot(plot(BirdFlowR::route(
   model,
-  n=500)))
-
-##
-model <- BirdFlowR::import_birdflow(
-  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), tmp[(tmp['end_traverse_cor_log']>0.6) & (tmp['end_traverse_cor_log']<0.7),]$model[1])
-)
-plot(plot(BirdFlowR::route(
-  model,
-  n=500)))
-
-##
-model <- BirdFlowR::import_birdflow(
-  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), tmp[(tmp['end_traverse_cor_log']>0.7) & (tmp['end_traverse_cor_log']<0.8),]$model[1])
-)
-plot(plot(BirdFlowR::route(
-  model,
-  n=500)))
-##
-model <- BirdFlowR::import_birdflow(
-  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), tmp[(tmp['end_traverse_cor_log']>0.8) & (tmp['end_traverse_cor_log']<0.9),]$model[1])
-)
-plot(plot(BirdFlowR::route(
-  model,
-  n=500)))
-
-##
-model <- BirdFlowR::import_birdflow(
-  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), tmp[(tmp['end_traverse_cor_log']>0.9) & (tmp['end_traverse_cor_log']<1),]$model[1])
-)
-plot(plot(BirdFlowR::route(
-  model,
-  n=500)))
+  n=100)))
 
 
 ########## Plotting
@@ -186,18 +137,18 @@ plot(plot(BirdFlowR::route(
 library(ggplot2)
 # build the plot with one small‐multiple per species
 p <- ggplot(raw_combined, 
-            aes(x = end_traverse_cor_log, 
+            aes(x = min_dist_cor, 
                 y = weighted_mean_ll_improvement)) +
   geom_point(alpha = 0.6) +
   facet_wrap(~ sp, scales = "free") +
   labs(
-    x = "Log end‐traverse correlation",
+    x = "min_dist_cor",
     y = "Weighted mean LL improvement"
   ) +
   theme_minimal()
 
 # save to PDF (all facets on one page)
-ggsave("species_plots.pdf", p, 
+ggsave("species_plots_min_cor.pdf", p, 
        device = "pdf", 
        width  = 50, 
        height = 50, limitsize = FALSE)

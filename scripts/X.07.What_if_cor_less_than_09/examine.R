@@ -2,7 +2,7 @@ library(BirdFlowR)
 library(BirdFlowPipeline)
 library(devtools)
 
-setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/07.What_if_cor_less_than_09/')
+# setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/07.What_if_cor_less_than_09/')
 
 # devtools::install_local("/home/yc85_illinois_edu/BirdFlowR", force = T, dependencies = FALSE) # if the BirdFlowR is updated, we need to reinstall it, so that i can be used in BirdFlowPipeline!
 # devtools::install_local("/home/yc85_illinois_edu/BirdFlowPipeline", force = T, dependencies = FALSE)

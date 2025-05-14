@@ -25,9 +25,9 @@ get_data <- function(species) {
                                 min_season_quality = 1)
   params <- preprocess_species_wrapper(params)
   
-  if (file.exists(file.path(params$output_path, 'all_ground_truth_transitions_df_filtered_transitions_between_breeding_and_nonbreeding.rds'))) {
-    stop('All finished!')
-  }
+  # if (file.exists(file.path(params$output_path, 'all_ground_truth_transitions_df_filtered_transitions_between_breeding_and_nonbreeding.rds'))) {
+  #   stop('All finished!')
+  # }
   
   saveRDS(params, file.path(params$output_path, 'params.rds'))
   

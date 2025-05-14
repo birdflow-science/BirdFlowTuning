@@ -224,6 +224,94 @@ print(p)
 dev.off()
 
 
+#### 04. color by body mass
+p <- ggplot(data=new_validation_summary, aes(x=PC1, y=PC2, fill=Mass))+
+  geom_jitter(shape = 21, size=3, alpha=0.9,
+              color = "black",
+              stroke = 0.5,
+              width = 0.1, height = 0.1) +
+  scale_fill_viridis_c(name = "Body mass (g)", trans = "log",
+                       breaks = c(20, 150, 1000, 8000),
+                       labels = c("20", "150", "1000", "8000")
+                       ) +
+  ggrepel::geom_text_repel(aes(label = common_name), size = 3, max.overlaps = 6) +
+  ggrepel::geom_text_repel(data=new_validation_summary[new_validation_summary$PC2 < -1.2,],
+                           aes(label = common_name), size = 3, max.overlaps = 23) +
+  ggrepel::geom_text_repel(data=new_validation_summary[new_validation_summary$PC1 < -2,],
+                           aes(label = common_name), size = 3, max.overlaps = 23) +
+  theme(
+    panel.background = element_blank(),    # no gray
+    panel.grid       = element_blank(),    # no grid
+    axis.line        = element_blank(),    # remove default axes
+    panel.border     = element_rect(       # add a black border
+      colour = "black", 
+      fill   = NA, 
+      linewidth   = 1
+    ),
+    axis.title.x = element_text(size = 18),
+    axis.title.y = element_text(size = 18, margin = margin(r = 20)),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14)
+  ) +
+  labs(
+    x=paste0('PC1 (', round(ss$importance['Proportion of Variance','PC1']*100, 2), '%)'),
+    y=paste0('PC2 (', round(ss$importance['Proportion of Variance','PC2']*100, 2), '%)')
+  ) +
+  my_plotting_params[['formater']] +
+  coord_cartesian(clip = "off") +
+  theme(
+    plot.margin = margin(t = 5, r = 5, b = 80, l = 40, unit = "pt"),
+    axis.title.x    = element_text(margin = margin(t = 25))
+  ) +
+  annotate("segment",
+           x    = -2.5, xend =  5,
+           y    = -Inf, yend = -Inf,
+           arrow = arrow(ends = "both", length = unit(0.3, "cm")),
+           linewidth=1) +
+  annotate("text",
+           x      = -Inf, y      = -Inf,
+           label  = "Low ent\nlow pow\nhigh dist",
+           size=5,
+           hjust  = 0, vjust =  1.3,
+           color='gray50') +
+  annotate("text",
+           x      =  Inf, y      = -Inf,
+           label  = "High ent\nhigh pow\nlow dist",
+           size=5,
+           hjust  =  1, vjust =  1.3,
+           color='gray50') +
+  annotate("segment",
+           x    = -Inf, xend =  -Inf,
+           y    = -1.5, yend = 3,
+           arrow = arrow(ends = "both", length = unit(0.3, "cm")),
+           linewidth=1) +
+  annotate("text",
+           x      = -Inf, y      = Inf,
+           label  = "High dist\nhigh pow",
+           size=5,
+           angle  = 90,
+           hjust  = 1, vjust =  -0.5,
+           color='gray50') +
+  annotate("text",
+           x      =  -Inf, y      = -Inf,
+           label  = "Low dist\nlow pow",
+           size=5,
+           angle  = 90,
+           hjust  =  -0.1, vjust =  -0.5,
+           color='gray50')
+
+cairo_pdf('../../data/08.Regression_for_hyperparameters/08.PCA_plot_bodymass_colored.pdf',
+          width = my_plotting_params[['single_plot_width']]*1.5, height = my_plotting_params[['single_plot_height']]*1.5, family = my_plotting_params[['font']])
+print(p)
+dev.off()
+
+
+
+
+
+
   
 
 

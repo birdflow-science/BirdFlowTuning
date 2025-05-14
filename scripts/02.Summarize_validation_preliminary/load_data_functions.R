@@ -19,7 +19,7 @@ load_raw_validation_all_sp <- function() {
     }
     ## Load 1
     train_interval_based <- readRDS(paste0(path,'/eval_metrics_train_distance_metric_all_combined.rds'))
-    if (!all(c("end_traverse_cor_log") %in% names(train_interval_based))) {
+    if (!all(c("traverse_cor_st") %in% names(train_interval_based))) {
       next
     }
     train_interval_based <- train_interval_based |> dplyr::filter(
@@ -37,25 +37,28 @@ load_raw_validation_all_sp <- function() {
     train_interval_based$mean_win_distance_fraction_quantile <- (train_interval_based$mean_win_distance_fraction - min(train_interval_based$mean_win_distance_fraction))/(max(train_interval_based$mean_win_distance_fraction) - min(train_interval_based$mean_win_distance_fraction))
     train_interval_based$mean_ll_improvement_quantile <- (train_interval_based$mean_ll_improvement - min(train_interval_based$mean_ll_improvement))/(max(train_interval_based$mean_ll_improvement) - min(train_interval_based$mean_ll_improvement))
     train_interval_based$ST09_threshold_LL_distance_score <- scale(train_interval_based$weighted_mean_win_distance) + scale(train_interval_based$weighted_mean_ll_improvement)
-    train_interval_based$ST09_threshold_LL_distance_score <- ifelse(train_interval_based$end_traverse_cor>0.9, train_interval_based$ST09_threshold_LL_distance_score, -999)
+    train_interval_based$ST09_threshold_LL_distance_score <- ifelse(train_interval_based$traverse_cor>0.9, train_interval_based$ST09_threshold_LL_distance_score, -999)
     
-    ideal <- c(max(scale(train_interval_based$end_traverse_cor)), max(scale(train_interval_based$weighted_mean_ll_improvement)))      # the utopia point
-    train_interval_based$ST_and_LL <- 1 / ((scale(train_interval_based$end_traverse_cor) - ideal[1])^2 +
+    ideal <- c(max(scale(train_interval_based$traverse_cor)), max(scale(train_interval_based$weighted_mean_ll_improvement)))      # the utopia point
+    train_interval_based$ST_and_LL <- 1 / ((scale(train_interval_based$traverse_cor) - ideal[1])^2 +
                                              (scale(train_interval_based$weighted_mean_ll_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
-    ideal <- c(max(scale(train_interval_based$end_traverse_cor)), max(scale(train_interval_based$weighted_energy_improvement)))      # the utopia point
-    train_interval_based$ST_and_energy <- 1 / ((scale(train_interval_based$end_traverse_cor) - ideal[1])^2 +
+    ideal <- c(max(scale(train_interval_based$traverse_cor)), max(scale(train_interval_based$weighted_energy_improvement)))      # the utopia point
+    train_interval_based$ST_and_energy <- 1 / ((scale(train_interval_based$traverse_cor) - ideal[1])^2 +
                                              (scale(train_interval_based$weighted_energy_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
     
-    ideal <- c(max(scale(train_interval_based$end_traverse_cor_log)), max(scale(train_interval_based$weighted_mean_ll_improvement)))      # the utopia point
-    train_interval_based$ST_and_LL_log <- 1 / ((scale(train_interval_based$end_traverse_cor_log) - ideal[1])^2 +
+    ideal <- c(max(scale(train_interval_based$traverse_cor_log)), max(scale(train_interval_based$weighted_mean_ll_improvement)))      # the utopia point
+    train_interval_based$ST_and_LL_log <- 1 / ((scale(train_interval_based$traverse_cor_log) - ideal[1])^2 +
                                              (scale(train_interval_based$weighted_mean_ll_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
-    ideal <- c(max(scale(train_interval_based$end_traverse_cor_log)), max(scale(train_interval_based$weighted_energy_improvement)))      # the utopia point
-    train_interval_based$ST_and_energy_log <- 1 / ((scale(train_interval_based$end_traverse_cor_log) - ideal[1])^2 +
+    ideal <- c(max(scale(train_interval_based$traverse_cor_log)), max(scale(train_interval_based$weighted_energy_improvement)))      # the utopia point
+    train_interval_based$ST_and_energy_log <- 1 / ((scale(train_interval_based$traverse_cor_log) - ideal[1])^2 +
                                                  (scale(train_interval_based$weighted_energy_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
     
-    train_interval_based$ST098_and_LL <- ifelse(train_interval_based$end_traverse_cor>0.98, 
+    train_interval_based$ST098_and_LL <- ifelse(train_interval_based$traverse_cor>0.98, 
                                              (train_interval_based$weighted_mean_ll_improvement - min(train_interval_based$weighted_mean_ll_improvement)),
-                                             0)
+                                             -100)
+    train_interval_based$ST098_and_energy_score <- ifelse(train_interval_based$traverse_cor>0.98, 
+                                                train_interval_based$weighted_energy_improvement,
+                                                -100)
     
     raw_combined[[sp]] <- train_interval_based
     
@@ -75,11 +78,11 @@ load_raw_validation_all_sp <- function() {
   
   common_cols <- Reduce(intersect, lapply(raw_combined, names))
   raw_combined <- do.call(rbind, lapply(raw_combined, function(df) df[, common_cols, drop = FALSE]))
-  raw_combined$sp <- sub("(.*)_2022_150km_.*\\.hdf5$", "\\1", raw_combined$model)
+  raw_combined$sp <- sub("(.*)_20[0-9]{2}_150km_.*\\.hdf5$", "\\1", raw_combined$model)
   
   common_cols <- Reduce(intersect, lapply(raw_combined_with_tracking, names))
   raw_combined_with_tracking <- do.call(rbind, lapply(raw_combined_with_tracking, function(df) df[, common_cols, drop = FALSE]))
-  raw_combined_with_tracking$sp <- sub("(.*)_2022_150km_.*\\.hdf5$", "\\1", raw_combined_with_tracking$model)
+  raw_combined_with_tracking$sp <- sub("(.*)_20[0-9]{2}_150km_.*\\.hdf5$", "\\1", raw_combined_with_tracking$model)
   
   library(stringr)
   pattern <- paste0("_ent([0-9\\.]+(?:[eE][+-]?[0-9]+)?)",
@@ -90,19 +93,20 @@ load_raw_validation_all_sp <- function() {
   raw_combined$ent  <- as.numeric(m[,2])
   raw_combined$dist <- as.numeric(m[,3])
   raw_combined$pow  <- as.numeric(m[,4])
-  raw_combined$model_param <- sub(".*_2022_150km_(.*)\\.hdf5$", "\\1", raw_combined$model)
+  raw_combined$model_param <- sub("(.*)_20[0-9]{2}_150km_.*\\.hdf5$", "\\1", raw_combined$model)
   
   m <- str_match(raw_combined_with_tracking$model, pattern)
   raw_combined_with_tracking$ent  <- as.numeric(m[,2])
   raw_combined_with_tracking$dist <- as.numeric(m[,3])
   raw_combined_with_tracking$pow  <- as.numeric(m[,4])
-  raw_combined_with_tracking$model_param <- sub(".*_2022_150km_(.*)\\.hdf5$", "\\1", raw_combined_with_tracking$model)
+  raw_combined_with_tracking$model_param <- sub("(.*)_20[0-9]{2}_150km_.*\\.hdf5$", "\\1", raw_combined_with_tracking$model)
   
   return(list(raw_combined=raw_combined, raw_combined_with_tracking=raw_combined_with_tracking))
 }
 
 
-load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_tracking, include_taxomany_LOO=FALSE) {
+load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_tracking, include_taxomany_LOO=FALSE,
+                                               ebirdst_year_verson=2023) {
   ## Round 2: only record the best models
   load_interval_based_df <- function(path) {
     interval_based <- readRDS(path)
@@ -116,25 +120,28 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
     interval_based$mean_win_distance_fraction_quantile <- (interval_based$mean_win_distance_fraction - min(interval_based$mean_win_distance_fraction))/(max(interval_based$mean_win_distance_fraction) - min(interval_based$mean_win_distance_fraction))
     interval_based$mean_ll_improvement_quantile <- (interval_based$mean_ll_improvement - min(interval_based$mean_ll_improvement))/(max(interval_based$mean_ll_improvement) - min(interval_based$mean_ll_improvement))
     interval_based$ST09_threshold_LL_distance_score <- scale(interval_based$weighted_mean_win_distance) + scale(interval_based$weighted_mean_ll_improvement)
-    interval_based$ST09_threshold_LL_distance_score <- ifelse(interval_based$end_traverse_cor>0.9, interval_based$ST09_threshold_LL_distance_score, -999)
+    interval_based$ST09_threshold_LL_distance_score <- ifelse(interval_based$traverse_cor>0.9, interval_based$ST09_threshold_LL_distance_score, -999)
     
-    ideal <- c(max(scale(interval_based$end_traverse_cor)), max(scale(interval_based$weighted_mean_ll_improvement)))      # the utopia point
-    interval_based$ST_and_LL <- 1 / ((scale(interval_based$end_traverse_cor) - ideal[1])^2 +
+    ideal <- c(max(scale(interval_based$traverse_cor)), max(scale(interval_based$weighted_mean_ll_improvement)))      # the utopia point
+    interval_based$ST_and_LL <- 1 / ((scale(interval_based$traverse_cor) - ideal[1])^2 +
                                              (scale(interval_based$weighted_mean_ll_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
-    ideal <- c(max(scale(interval_based$end_traverse_cor)), max(scale(interval_based$weighted_energy_improvement)))      # the utopia point
-    interval_based$ST_and_energy <- 1 / ((scale(interval_based$end_traverse_cor) - ideal[1])^2 +
+    ideal <- c(max(scale(interval_based$traverse_cor)), max(scale(interval_based$weighted_energy_improvement)))      # the utopia point
+    interval_based$ST_and_energy <- 1 / ((scale(interval_based$traverse_cor) - ideal[1])^2 +
                                                  (scale(interval_based$weighted_energy_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
     
-    ideal <- c(max(scale(interval_based$end_traverse_cor_log)), max(scale(interval_based$weighted_mean_ll_improvement)))      # the utopia point
-    interval_based$ST_and_LL_log <- 1 / ((scale(interval_based$end_traverse_cor_log) - ideal[1])^2 +
+    ideal <- c(max(scale(interval_based$traverse_cor_log)), max(scale(interval_based$weighted_mean_ll_improvement)))      # the utopia point
+    interval_based$ST_and_LL_log <- 1 / ((scale(interval_based$traverse_cor_log) - ideal[1])^2 +
                                        (scale(interval_based$weighted_mean_ll_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
-    ideal <- c(max(scale(interval_based$end_traverse_cor_log)), max(scale(interval_based$weighted_energy_improvement)))      # the utopia point
-    interval_based$ST_and_energy_log <- 1 / ((scale(interval_based$end_traverse_cor_log) - ideal[1])^2 +
+    ideal <- c(max(scale(interval_based$traverse_cor_log)), max(scale(interval_based$weighted_energy_improvement)))      # the utopia point
+    interval_based$ST_and_energy_log <- 1 / ((scale(interval_based$traverse_cor_log) - ideal[1])^2 +
                                            (scale(interval_based$weighted_energy_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
     
-    interval_based$ST098_and_LL <- ifelse(interval_based$end_traverse_cor>0.98, 
+    interval_based$ST098_and_LL <- ifelse(interval_based$traverse_cor>0.98, 
                                                 (interval_based$weighted_mean_ll_improvement - min(interval_based$weighted_mean_ll_improvement)),
                                                 0)
+    interval_based$ST098_and_energy_score <- ifelse(interval_based$traverse_cor>0.98, 
+                                                    interval_based$weighted_energy_improvement,
+                                                          -100)
     
     interval_based <- interval_based |>
       dplyr::mutate(
@@ -200,11 +207,12 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
     best_model_by_ST_and_LL_log <- (train_interval_based |> dplyr::arrange(-ST_and_LL_log))$model[1]
     best_model_by_ST_and_energy_log <- (train_interval_based |> dplyr::arrange(-ST_and_energy_log))$model[1]
     best_model_by_ST098_and_LL <- (train_interval_based |> dplyr::arrange(-ST098_and_LL))$model[1]
+    best_model_by_ST098_and_energy_score <- (train_interval_based |> dplyr::arrange(-ST098_and_energy_score))$model[1]
     best_model_by_LL <- (train_interval_based |> dplyr::arrange(-weighted_mean_ll_improvement))$model[1]
     best_model_by_distance_metric <- (train_interval_based |> dplyr::arrange(-weighted_mean_win_distance))$model[1]
     best_model_by_energy_score <- (train_interval_based |> dplyr::arrange(-weighted_energy_improvement))$model[1]
     best_model_by_energy_score_days_integral <- (train_interval_based |> dplyr::arrange(-weighted_energy_improvement_days_integral))$model[1]
-    best_param_by_LOO_energy_score <- paste0(sp, '_2022_150km_', (raw_combined |> 
+    best_param_by_LOO_energy_score <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                     dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                     dplyr::group_by(.data[['model_param']]) |>
                                                                     dplyr::summarize(
@@ -214,7 +222,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                     dplyr::ungroup()
     )$model_param[1], '.hdf5')
     
-    best_param_by_LOO_ST09_threshold_LL_distance_score <- paste0(sp, '_2022_150km_', (raw_combined |> 
+    best_param_by_LOO_ST09_threshold_LL_distance_score <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                                         dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                                         dplyr::group_by(.data[['model_param']]) |>
                                                                                         dplyr::summarize(
@@ -223,7 +231,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                                         dplyr::arrange(-.data[['ST09_threshold_LL_distance_score']]) |>
                                                                                         dplyr::ungroup()
     )$model_param[1], '.hdf5')
-    best_param_by_LOO_ST_and_LL <- paste0(sp, '_2022_150km_', (raw_combined |> 
+    best_param_by_LOO_ST_and_LL <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                                         dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                                         dplyr::group_by(.data[['model_param']]) |>
                                                                                         dplyr::summarize(
@@ -232,7 +240,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                                         dplyr::arrange(-.data[['ST_and_LL']]) |>
                                                                                         dplyr::ungroup()
     )$model_param[1], '.hdf5')
-    best_param_by_LOO_ST_and_energy <- paste0(sp, '_2022_150km_', (raw_combined |> 
+    best_param_by_LOO_ST_and_energy <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                  dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                  dplyr::group_by(.data[['model_param']]) |>
                                                                  dplyr::summarize(
@@ -241,7 +249,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                  dplyr::arrange(-.data[['ST_and_energy']]) |>
                                                                  dplyr::ungroup()
     )$model_param[1], '.hdf5')
-    best_param_by_LOO_ST_and_LL_log <- paste0(sp, '_2022_150km_', (raw_combined |> 
+    best_param_by_LOO_ST_and_LL_log <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                  dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                  dplyr::group_by(.data[['model_param']]) |>
                                                                  dplyr::summarize(
@@ -250,7 +258,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                  dplyr::arrange(-.data[['ST_and_LL_log']]) |>
                                                                  dplyr::ungroup()
     )$model_param[1], '.hdf5')
-    best_param_by_LOO_ST_and_energy_log <- paste0(sp, '_2022_150km_', (raw_combined |> 
+    best_param_by_LOO_ST_and_energy_log <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                      dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                      dplyr::group_by(.data[['model_param']]) |>
                                                                      dplyr::summarize(
@@ -259,7 +267,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                      dplyr::arrange(-.data[['ST_and_energy_log']]) |>
                                                                      dplyr::ungroup()
     )$model_param[1], '.hdf5')
-    best_param_by_LOO_ST098_and_LL <- paste0(sp, '_2022_150km_', (raw_combined |> 
+    best_param_by_LOO_ST098_and_LL <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                          dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                          dplyr::group_by(.data[['model_param']]) |>
                                                                          dplyr::summarize(
@@ -268,7 +276,16 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                          dplyr::arrange(-.data[['ST098_and_LL']]) |>
                                                                          dplyr::ungroup()
     )$model_param[1], '.hdf5')
-    best_param_by_LOO_LL <- paste0(sp, '_2022_150km_', (raw_combined |> 
+    best_param_by_LOO_ST098_and_energy_score <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
+                                                                    dplyr::filter(.data[['sp']] != {{sp}}) |>
+                                                                    dplyr::group_by(.data[['model_param']]) |>
+                                                                    dplyr::summarize(
+                                                                      ST098_and_energy_score = mean(.data[['ST098_and_energy_score']])
+                                                                    ) |>
+                                                                    dplyr::arrange(-.data[['ST098_and_energy_score']]) |>
+                                                                    dplyr::ungroup()
+    )$model_param[1], '.hdf5')
+    best_param_by_LOO_LL <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                           dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                           dplyr::group_by(.data[['model_param']]) |>
                                                           dplyr::summarize(
@@ -277,7 +294,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                           dplyr::arrange(-.data[['weighted_mean_ll']]) |>
                                                           dplyr::ungroup()
     )$model_param[1], '.hdf5')
-    best_param_by_LOO_distance_metric <- paste0(sp, '_2022_150km_', (raw_combined |> 
+    best_param_by_LOO_distance_metric <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                        dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                        dplyr::group_by(.data[['model_param']]) |>
                                                                        dplyr::summarize(
@@ -286,7 +303,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                        dplyr::arrange(-.data[['weighted_mean_win_distance']]) |>
                                                                        dplyr::ungroup()
     )$model_param[1], '.hdf5')
-    best_param_by_daves_multiobjective <- paste0(sp, '_2022_150km_', (raw_combined_with_tracking |> 
+    best_param_by_daves_multiobjective <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined_with_tracking |> 
                                                                         dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                         dplyr::group_by(.data[['model_param']]) |>
                                                                         dplyr::summarize(
@@ -296,7 +313,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                         dplyr::ungroup())$model_param[1], '.hdf5')
     
     if (include_taxomany_LOO) {
-      best_param_by_LOO_energy_score_FAMILY <- paste0(sp, '_2022_150km_', (raw_combined |> 
+      best_param_by_LOO_energy_score_FAMILY <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                       dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                       dplyr::filter(.data[['FAMILY1_eBird']] == {{family_}}) |>
                                                                       dplyr::group_by(.data[['model_param']]) |>
@@ -307,7 +324,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                       dplyr::ungroup()
       )$model_param[1], '.hdf5')
       
-      best_param_by_LOO_ST09_threshold_LL_distance_score_FAMILY <- paste0(sp, '_2022_150km_', (raw_combined |> 
+      best_param_by_LOO_ST09_threshold_LL_distance_score_FAMILY <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                                           dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                                           dplyr::filter(.data[['FAMILY1_eBird']] == {{family_}}) |>
                                                                                           dplyr::group_by(.data[['model_param']]) |>
@@ -317,7 +334,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                                           dplyr::arrange(-.data[['ST09_threshold_LL_distance_score']]) |>
                                                                                           dplyr::ungroup()
       )$model_param[1], '.hdf5')
-      best_param_by_LOO_ST_and_LL_FAMILY <- paste0(sp, '_2022_150km_', (raw_combined |> 
+      best_param_by_LOO_ST_and_LL_FAMILY <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                                                  dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                                                  dplyr::filter(.data[['FAMILY1_eBird']] == {{family_}}) |>
                                                                                                  dplyr::group_by(.data[['model_param']]) |>
@@ -327,7 +344,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                                                  dplyr::arrange(-.data[['ST_and_LL']]) |>
                                                                                                  dplyr::ungroup()
       )$model_param[1], '.hdf5')
-      best_param_by_LOO_ST_and_energy_FAMILY <- paste0(sp, '_2022_150km_', (raw_combined |> 
+      best_param_by_LOO_ST_and_energy_FAMILY <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                                          dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                                          dplyr::filter(.data[['FAMILY1_eBird']] == {{family_}}) |>
                                                                                          dplyr::group_by(.data[['model_param']]) |>
@@ -337,7 +354,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                                          dplyr::arrange(-.data[['ST_and_energy']]) |>
                                                                                          dplyr::ungroup()
       )$model_param[1], '.hdf5')
-      best_param_by_LOO_ST_and_LL_log_FAMILY <- paste0(sp, '_2022_150km_', (raw_combined |> 
+      best_param_by_LOO_ST_and_LL_log_FAMILY <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                                          dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                                          dplyr::filter(.data[['FAMILY1_eBird']] == {{family_}}) |>
                                                                                          dplyr::group_by(.data[['model_param']]) |>
@@ -347,7 +364,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                                          dplyr::arrange(-.data[['ST_and_LL_log']]) |>
                                                                                          dplyr::ungroup()
       )$model_param[1], '.hdf5')
-      best_param_by_LOO_ST_and_energy_log_FAMILY <- paste0(sp, '_2022_150km_', (raw_combined |> 
+      best_param_by_LOO_ST_and_energy_log_FAMILY <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                                              dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                                              dplyr::filter(.data[['FAMILY1_eBird']] == {{family_}}) |>
                                                                                              dplyr::group_by(.data[['model_param']]) |>
@@ -357,7 +374,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                                              dplyr::arrange(-.data[['ST_and_energy_log']]) |>
                                                                                              dplyr::ungroup()
       )$model_param[1], '.hdf5')
-      best_param_by_LOO_ST098_and_LL_FAMILY <- paste0(sp, '_2022_150km_', (raw_combined |> 
+      best_param_by_LOO_ST098_and_LL_FAMILY <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                                                  dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                                                  dplyr::filter(.data[['FAMILY1_eBird']] == {{family_}}) |>
                                                                                                  dplyr::group_by(.data[['model_param']]) |>
@@ -367,7 +384,17 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                                                  dplyr::arrange(-.data[['ST098_and_LL']]) |>
                                                                                                  dplyr::ungroup()
       )$model_param[1], '.hdf5')
-      best_param_by_LOO_LL_FAMILY <- paste0(sp, '_2022_150km_', (raw_combined |> 
+      best_param_by_LOO_ST098_and_energy_score_FAMILY <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
+                                                                             dplyr::filter(.data[['sp']] != {{sp}}) |>
+                                                                             dplyr::filter(.data[['FAMILY1_eBird']] == {{family_}}) |>
+                                                                             dplyr::group_by(.data[['model_param']]) |>
+                                                                             dplyr::summarize(
+                                                                               ST098_and_energy_score = mean(.data[['ST098_and_energy_score']])
+                                                                             ) |>
+                                                                             dplyr::arrange(-.data[['ST098_and_energy_score']]) |>
+                                                                             dplyr::ungroup()
+      )$model_param[1], '.hdf5')
+      best_param_by_LOO_LL_FAMILY <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                             dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                               dplyr::filter(.data[['FAMILY1_eBird']] == {{family_}}) |>
                                                             dplyr::group_by(.data[['model_param']]) |>
@@ -377,7 +404,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                             dplyr::arrange(-.data[['weighted_mean_ll']]) |>
                                                             dplyr::ungroup()
       )$model_param[1], '.hdf5')
-      best_param_by_LOO_distance_metric_FAMILY <- paste0(sp, '_2022_150km_', (raw_combined |> 
+      best_param_by_LOO_distance_metric_FAMILY <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                          dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                            dplyr::filter(.data[['FAMILY1_eBird']] == {{family_}}) |>
                                                                          dplyr::group_by(.data[['model_param']]) |>
@@ -388,7 +415,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                          dplyr::ungroup()
       )$model_param[1], '.hdf5')
 
-      best_param_by_LOO_energy_score_ORDER <- paste0(sp, '_2022_150km_', (raw_combined |> 
+      best_param_by_LOO_energy_score_ORDER <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                              dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                              dplyr::filter(.data[['ORDER1_eBird']] == {{order_}}) |>
                                                                              dplyr::group_by(.data[['model_param']]) |>
@@ -399,7 +426,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                              dplyr::ungroup()
       )$model_param[1], '.hdf5')
       
-      best_param_by_LOO_ST09_threshold_LL_distance_score_ORDER <- paste0(sp, '_2022_150km_', (raw_combined |> 
+      best_param_by_LOO_ST09_threshold_LL_distance_score_ORDER <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                                                  dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                                                 dplyr::filter(.data[['ORDER1_eBird']] == {{order_}}) |>
                                                                                                  dplyr::group_by(.data[['model_param']]) |>
@@ -409,7 +436,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                                                  dplyr::arrange(-.data[['ST09_threshold_LL_distance_score']]) |>
                                                                                                  dplyr::ungroup()
       )$model_param[1], '.hdf5')
-      best_param_by_LOO_ST_and_LL_ORDER <- paste0(sp, '_2022_150km_', (raw_combined |> 
+      best_param_by_LOO_ST_and_LL_ORDER <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                                          dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                                         dplyr::filter(.data[['ORDER1_eBird']] == {{order_}}) |>
                                                                                          dplyr::group_by(.data[['model_param']]) |>
@@ -419,7 +446,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                                          dplyr::arrange(-.data[['ST_and_LL']]) |>
                                                                                          dplyr::ungroup()
       )$model_param[1], '.hdf5')
-      best_param_by_LOO_ST_and_energy_ORDER <- paste0(sp, '_2022_150km_', (raw_combined |> 
+      best_param_by_LOO_ST_and_energy_ORDER <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                                              dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                                             dplyr::filter(.data[['ORDER1_eBird']] == {{order_}}) |>
                                                                                              dplyr::group_by(.data[['model_param']]) |>
@@ -429,7 +456,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                                              dplyr::arrange(-.data[['ST_and_energy']]) |>
                                                                                              dplyr::ungroup()
       )$model_param[1], '.hdf5')
-      best_param_by_LOO_ST_and_LL_log_ORDER <- paste0(sp, '_2022_150km_', (raw_combined |> 
+      best_param_by_LOO_ST_and_LL_log_ORDER <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                                         dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                                         dplyr::filter(.data[['ORDER1_eBird']] == {{order_}}) |>
                                                                                         dplyr::group_by(.data[['model_param']]) |>
@@ -439,7 +466,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                                         dplyr::arrange(-.data[['ST_and_LL_log']]) |>
                                                                                         dplyr::ungroup()
       )$model_param[1], '.hdf5')
-      best_param_by_LOO_ST_and_energy_log_ORDER <- paste0(sp, '_2022_150km_', (raw_combined |> 
+      best_param_by_LOO_ST_and_energy_log_ORDER <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                                             dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                                             dplyr::filter(.data[['ORDER1_eBird']] == {{order_}}) |>
                                                                                             dplyr::group_by(.data[['model_param']]) |>
@@ -449,7 +476,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                                             dplyr::arrange(-.data[['ST_and_energy_log']]) |>
                                                                                             dplyr::ungroup()
       )$model_param[1], '.hdf5')
-      best_param_by_LOO_ST098_and_LL_ORDER <- paste0(sp, '_2022_150km_', (raw_combined |> 
+      best_param_by_LOO_ST098_and_LL_ORDER <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                                                 dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                                                 dplyr::filter(.data[['ORDER1_eBird']] == {{order_}}) |>
                                                                                                 dplyr::group_by(.data[['model_param']]) |>
@@ -459,7 +486,17 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                                                 dplyr::arrange(-.data[['ST098_and_LL']]) |>
                                                                                                 dplyr::ungroup()
       )$model_param[1], '.hdf5')
-      best_param_by_LOO_LL_ORDER <- paste0(sp, '_2022_150km_', (raw_combined |> 
+      best_param_by_LOO_ST098_and_energy_score_ORDER <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
+                                                                            dplyr::filter(.data[['sp']] != {{sp}}) |>
+                                                                            dplyr::filter(.data[['ORDER1_eBird']] == {{order_}}) |>
+                                                                            dplyr::group_by(.data[['model_param']]) |>
+                                                                            dplyr::summarize(
+                                                                              ST098_and_energy_score = mean(.data[['ST098_and_energy_score']])
+                                                                            ) |>
+                                                                            dplyr::arrange(-.data[['ST098_and_energy_score']]) |>
+                                                                            dplyr::ungroup()
+      )$model_param[1], '.hdf5')
+      best_param_by_LOO_LL_ORDER <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                    dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                    dplyr::filter(.data[['ORDER1_eBird']] == {{order_}}) |>
                                                                    dplyr::group_by(.data[['model_param']]) |>
@@ -469,7 +506,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                    dplyr::arrange(-.data[['weighted_mean_ll']]) |>
                                                                    dplyr::ungroup()
       )$model_param[1], '.hdf5')
-      best_param_by_LOO_distance_metric_ORDER <- paste0(sp, '_2022_150km_', (raw_combined |> 
+      best_param_by_LOO_distance_metric_ORDER <- paste0(sp, '_', ebirdst_year_verson, '_150km_', (raw_combined |> 
                                                                                 dplyr::filter(.data[['sp']] != {{sp}}) |>
                                                                                dplyr::filter(.data[['ORDER1_eBird']] == {{order_}}) |>
                                                                                 dplyr::group_by(.data[['model_param']]) |>
@@ -489,6 +526,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
         'ST_and_LL_log'=best_model_by_ST_and_LL_log,
         'ST_and_energy_log'=best_model_by_ST_and_energy_log,
         'ST098_and_LL'=best_model_by_ST098_and_LL,
+        'ST098_and_energy_score'=best_model_by_ST098_and_energy_score,
         'LL'=best_model_by_LL,
         'distance_metric'=best_model_by_distance_metric,
         'energy_score'=best_model_by_energy_score,
@@ -500,6 +538,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
         'LOO_ST_and_LL_log'=best_param_by_LOO_ST_and_LL_log,
         'LOO_ST_and_energy_log'=best_param_by_LOO_ST_and_energy_log,
         'LOO_ST098_and_LL'=best_param_by_LOO_ST098_and_LL,
+        'LOO_ST098_and_energy_scoreL'=best_param_by_LOO_ST098_and_energy_score,
         'LOO_LL'=best_param_by_LOO_LL,
         'LOO_distance_metric'=best_param_by_LOO_distance_metric,
         'LOO_FAMILY_energy_score'=best_param_by_LOO_energy_score_FAMILY,
@@ -509,6 +548,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
         'LOO_FAMILY_ST_and_LL_log'=best_param_by_LOO_ST_and_LL_log_FAMILY,
         'LOO_FAMILY_ST_and_energy_log'=best_param_by_LOO_ST_and_energy_log_FAMILY,
         'LOO_FAMILY_ST098_and_LL'=best_param_by_LOO_ST098_and_LL_FAMILY,
+        'LOO_FAMILY_ST098_and_energy_score'=best_param_by_LOO_ST098_and_energy_score_FAMILY,
         'LOO_FAMILY_LL'=best_param_by_LOO_LL_FAMILY,
         'LOO_FAMILY_distance_metric'=best_param_by_LOO_distance_metric_FAMILY,
         'LOO_ORDER_energy_score'=best_param_by_LOO_energy_score_ORDER,
@@ -518,6 +558,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
         'LOO_ORDER_ST_and_LL_log'=best_param_by_LOO_ST_and_LL_log_ORDER,
         'LOO_ORDER_ST_and_energy_log'=best_param_by_LOO_ST_and_energy_log_ORDER,
         'LOO_ORDER_ST098_and_LL'=best_param_by_LOO_ST098_and_LL_ORDER,
+        'LOO_ORDER_ST098_and_energy_score'=best_param_by_LOO_ST098_and_energy_score_ORDER,
         'LOO_ORDER_LL'=best_param_by_LOO_LL_ORDER,
         'LOO_ORDER_distance_metric'=best_param_by_LOO_distance_metric_ORDER,
         'best_param_for_daves_multiobjective_5_sp'=best_param_by_daves_multiobjective
@@ -530,6 +571,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
         'ST_and_LL_log'=best_model_by_ST_and_LL_log,
         'ST_and_energy_log'=best_model_by_ST_and_energy_log,
         'ST098_and_LL'=best_model_by_ST098_and_LL,
+        'ST098_and_energy_score'=best_model_by_ST098_and_energy_score,
         'LL'=best_model_by_LL,
         'distance_metric'=best_model_by_distance_metric,
         'energy_score'=best_model_by_energy_score,
@@ -538,6 +580,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
         'LOO_ST09_threshold_LL_distance_score'=best_param_by_LOO_ST09_threshold_LL_distance_score,
         'LOO_ST_and_LL'=best_param_by_LOO_ST_and_LL,
         'LOO_ST098_and_LL'=best_param_by_LOO_ST098_and_LL,
+        'LOO_ST098_and_energy_score'=best_param_by_LOO_ST098_and_energy_score,
         'LOO_ST_and_energy'=best_param_by_LOO_ST_and_energy,
         'LOO_ST_and_LL_log'=best_param_by_LOO_ST_and_LL_log,
         'LOO_ST_and_energy_log'=best_param_by_LOO_ST_and_energy_log,
@@ -554,7 +597,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                                           'mean_win_distance', 'weighted_mean_win_distance',
                                                                                           'mean_energy_improvement', 'weighted_energy_improvement',
                                                                                           'pit_d','pit_row','pit_col','pit_in_95',
-                                                                                          'end_traverse_cor', 'end_traverse_cor_log',
+                                                                                          'traverse_cor', 'traverse_cor_log',
                                                                                           "synth_routes_prebreeding_migration_straightness", "synth_routes_prebreeding_migration_n_stopovers", "synth_routes_prebreeding_migration_speed",
                                                                                           "synth_routes_breeding_straightness", "synth_routes_breeding_n_stopovers", "synth_routes_breeding_speed",
                                                                                           "synth_routes_postbreeding_migration_straightness", "synth_routes_postbreeding_migration_n_stopovers", "synth_routes_postbreeding_migration_speed",
@@ -599,12 +642,12 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
   all_res$ent  <- as.numeric(m[,2])
   all_res$dist <- as.numeric(m[,3])
   all_res$pow  <- as.numeric(m[,4])
-  all_res$model_param <- sub(".*_2022_150km_(.*)\\.hdf5$", "\\1", all_res$model)
+  all_res$model_param <- sub(".*_20[0-9]{2}_150km_(.*)\\.hdf5$", "\\1", all_res$model)
   m <- str_match(all_res_with_tracking$model, pattern)
   all_res_with_tracking$ent  <- as.numeric(m[,2])
   all_res_with_tracking$dist <- as.numeric(m[,3])
   all_res_with_tracking$pow  <- as.numeric(m[,4])
-  all_res_with_tracking$model_param <- sub(".*_2022_150km_(.*)\\.hdf5$", "\\1", all_res_with_tracking$model)
+  all_res_with_tracking$model_param <- sub(".*_20[0-9]{2}_150km_(.*)\\.hdf5$", "\\1", all_res_with_tracking$model)
   
   return(list(all_res=all_res, all_res_with_tracking=all_res_with_tracking))
 }

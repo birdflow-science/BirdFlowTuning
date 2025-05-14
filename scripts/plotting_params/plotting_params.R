@@ -3,8 +3,8 @@ library(ggplot2)
 my_plotting_params <- list()
 
 ## 00. plot size
-my_plotting_params[['single_plot_width']] <- 7
-my_plotting_params[['single_plot_height']] <- 7
+my_plotting_params[['single_plot_width']] <- 10
+my_plotting_params[['single_plot_height']] <- 10
 my_plotting_params[['font']] <- 'Arial'
 
 ## 01.theme

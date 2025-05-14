@@ -41,8 +41,8 @@ regress <- function(data,
       
       # Extract the coefficients
       data.frame(
-        slope = coef(model)[2],       # Slope of predictor_var
-        intercept = coef(model)[1]    # Intercept
+        slope = coef(model)[2],
+        intercept = coef(model)[1]
       )
     })
   
@@ -83,10 +83,8 @@ regress_average_param <- function(data,
   regression_result <- data |>
     group_by(.data[[random_effect_var]]) |>
     group_modify(~ {
-      # Fit the model within each group
-      model <- lm(formula, data = .x) # Robust regression
+      model <- lm(formula, data = .x)
       
-      # Coefficients
       data.frame(
         slope = coef(model)[2],
         intercept = coef(model)[1]
@@ -179,7 +177,7 @@ regress_exponential_decay <- function(data,
     group_by(.data[[random_effect_var]]) |>
     group_modify(~ {
       # Fit the model within each group
-      safe_fit <- purrr::safely(fit_exponential_model)  # or your SSasymp version
+      safe_fit <- purrr::safely(fit_exponential_model)
       out <- safe_fit(.x, x=predictor_var, y=response_var)
       if (is.null(out$result)) {
         return(data.frame(list(A=NA, B=NA, C=NA, x_intercept=NA)))
@@ -388,13 +386,14 @@ dev.off()
 decay_intercept <- read.csv('../../data/04.Sumamrize_prediction_metrics/02.02.regression_distance_gain_elapsed_km.csv')
 decay_intercept <- na.omit(decay_intercept)
 decay_intercept <- decay_intercept[decay_intercept$x_intercept<=10000,]
-
+max(decay_intercept$x_intercept)
 p <- ggplot(data=decay_intercept, aes(x=.data[['x_intercept']])) +
   geom_histogram() +
   my_plotting_params[['zero_vline']] +
   labs(x = "Maximum functional elapse distance (km)\n for distance gain", y = 'Species count') +
   my_plotting_params[['theme']] +
-  my_plotting_params[['formater']]
+  my_plotting_params[['formater']]+
+  xlim(NA, 6646.544 +1)
 
 # save
 cairo_pdf('../../data/04.Sumamrize_prediction_metrics/02.08.hist_regression_distance_gain_elapsed_km.pdf',
@@ -412,7 +411,8 @@ p <- ggplot(data=decay_intercept, aes(x=.data[['x_intercept']])) +
   my_plotting_params[['zero_vline']] +
   labs(x = "Maximum functional elapse distance (km)\n for log likelihood improvement", y = 'Species count') +
   my_plotting_params[['theme']] +
-  my_plotting_params[['formater']]
+  my_plotting_params[['formater']] +
+  xlim(NA, 6646.544 +1)
 
 # save
 cairo_pdf('../../data/04.Sumamrize_prediction_metrics/02.08.hist_regression_LL_elapsed_km.pdf',
