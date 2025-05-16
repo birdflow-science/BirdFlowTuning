@@ -2,178 +2,181 @@ library(BirdFlowR)
 library(BirdFlowPipeline)
 library(devtools)
 library(ebirdst)
+library(stringr)
 
 parent_path <- "/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric"
-paths <- Sys.glob(glue::glue("{parent_path}/*/*_150km_interval_based_eval_using_migration_transitions"))
 # print(paths)
 
 ### load data
+# helper functions
+#' Load evaluation results
+#' @param path the path dir to search
+#' @param search_cv whether to search for the cv results or just normal results
+#' @param type have to be 'train_distance_metric' or 'test_distance_metric' or 'train_multi_objective'
+load_evaluation <- function(path, search_cv, type='train_distance_metric') {
+  interval_based <- NULL
+  ## Try loading cv metrics
+  if (search_cv) {
+    cv_file_path <- Sys.glob(paste0(path, glue::glue('/eval_metrics_{type}_all_combined_cv*.rds')))
+    if (length(cv_file_path)>0) {
+      all_cv <- list()
+      for (the_cv_file in cv_file_path) {
+        the_cv_df <- readRDS(the_cv_file)
+        all_cv[[length(all_cv) + 1]] <- the_cv_df |> as.data.frame()
+      }
+      interval_based <- do.call(rbind, all_cv)
+      interval_based <- interval_based |> dplyr::group_by(.data[['model']]) |> dplyr::summarise(dplyr::across(dplyr::where(is.numeric), \(x) mean(x, na.rm = TRUE)))
+    }
+  }
+  ## Try loading normal non cv metrics
+  if (is.null(interval_based)) {
+    print(glue::glue('Not using CV: method type - {type}'))
+    non_cv_file_path <- paste0(path, glue::glue('/eval_metrics_{type}_all_combined.rds'))
+    if (!file.exists(non_cv_file_path)) {
+      if (!type=='train_multi_objective') {
+        print('No evaluation results found.')
+      }
+      return(NULL)
+    } else {
+      interval_based <- readRDS(non_cv_file_path)
+    }
+  }
+  
+  ## QC
+  if (!all(c("traverse_cor_st") %in% names(interval_based))) {
+    return(NULL)
+  }
+  interval_based <- interval_based |> dplyr::filter(
+    (!is.na(.data[['pit_row']])) & (!is.na(.data[['pit_col']])) & (!is.na(.data[['pit_in_95']]))
+  )
+  if (nrow(interval_based) == 0){
+    return(NULL)
+  }
+  
+  
+  interval_based$weighted_mean_ll_improvement <- interval_based$weighted_mean_ll - interval_based$weighted_mean_null_ll
+  interval_based$mean_ll_improvement <- interval_based$mean_ll - interval_based$mean_null_ll
+  interval_based$sp <- sub("(.*)_20[0-9]{2}_150km_.*\\.hdf5$", "\\1", interval_based$model)
+  pattern <- paste0("_ent([0-9\\.]+(?:[eE][+-]?[0-9]+)?)",
+                    "_dist([0-9\\.]+(?:[eE][+-]?[0-9]+)?)",
+                    "_pow([0-9\\.]+(?:[eE][+-]?[0-9]+)?)",
+                    "\\.hdf5$")
+  m <- str_match(interval_based$model, pattern)
+  interval_based$ent  <- as.numeric(m[,2])
+  interval_based$dist <- as.numeric(m[,3])
+  interval_based$pow  <- as.numeric(m[,4])
+  interval_based$model_param <- sub(".*_20[0-9]{2}_150km_(.*)\\.hdf5$", "\\1", interval_based$model)
+  
+  
+  ### futher
+  interval_based$mean_win_distance_fraction_quantile <- (interval_based$mean_win_distance_fraction - min(interval_based$mean_win_distance_fraction))/(max(interval_based$mean_win_distance_fraction) - min(interval_based$mean_win_distance_fraction))
+  interval_based$mean_ll_improvement_quantile <- (interval_based$mean_ll_improvement - min(interval_based$mean_ll_improvement))/(max(interval_based$mean_ll_improvement) - min(interval_based$mean_ll_improvement))
+  interval_based$ST09_threshold_LL_distance_score <- scale(interval_based$weighted_mean_win_distance) + scale(interval_based$weighted_mean_ll_improvement)
+  interval_based$ST09_threshold_LL_distance_score <- ifelse(interval_based$mean_dist_cor>0.9, interval_based$ST09_threshold_LL_distance_score, -999)
+  
+  ideal <- c(max(scale(interval_based$mean_dist_cor)), max(scale(interval_based$weighted_mean_ll_improvement)))      # the utopia point
+  interval_based$ST_and_LL <- 1 / ((scale(interval_based$mean_dist_cor) - ideal[1])^2 +
+                                     (scale(interval_based$weighted_mean_ll_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
+  ideal <- c(max(scale(interval_based$mean_dist_cor)), max(scale(interval_based$weighted_energy_improvement)))      # the utopia point
+  interval_based$ST_and_energy <- 1 / ((scale(interval_based$mean_dist_cor) - ideal[1])^2 +
+                                         (scale(interval_based$weighted_energy_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
+  
+  ideal <- c(max(scale(interval_based$mean_dist_cor_log)), max(scale(interval_based$weighted_mean_ll_improvement)))      # the utopia point
+  interval_based$ST_and_LL_log <- 1 / ((scale(interval_based$mean_dist_cor_log) - ideal[1])^2 +
+                                         (scale(interval_based$weighted_mean_ll_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
+  ideal <- c(max(scale(interval_based$mean_dist_cor_log)), max(scale(interval_based$weighted_energy_improvement)))      # the utopia point
+  interval_based$ST_and_energy_log <- 1 / ((scale(interval_based$mean_dist_cor_log) - ideal[1])^2 +
+                                             (scale(interval_based$weighted_energy_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
+  
+  interval_based$ST098_and_LL <- ifelse(interval_based$mean_dist_cor>0.98, 
+                                        (interval_based$weighted_mean_ll_improvement - min(interval_based$weighted_mean_ll_improvement)),
+                                        0)
+  interval_based$ST098_and_energy_score <- ifelse(interval_based$mean_dist_cor>0.98, 
+                                                  interval_based$weighted_energy_improvement,
+                                                  -100)
+  
+  interval_based <- interval_based |>
+    dplyr::mutate(
+      d_pit_row = desirability2::d_min(.data$pit_row, use_data = TRUE),
+      d_pit_col = desirability2::d_min(.data$pit_col, use_data = TRUE),
+      d_pit_in_95 = ifelse(
+        diff(range(abs(.data$pit_in_95 - 0.95))) == 0,
+        1,
+        desirability2::d_min(abs(.data$pit_in_95 - 0.95), use_data = TRUE)
+      ),
+      pit_d = desirability2::d_overall(dplyr::across(dplyr::starts_with("d_pit"))),
+    )
+  
+  return(interval_based)
+}
+
+
 ## Round 1: Load all the raw evaluation
-load_raw_validation_all_sp <- function() {
+load_raw_validation_all_sp <- function(paths=NULL, search_cv=T, average_cv=T) {
   raw_combined <- list()
   raw_combined_with_tracking <- list()
+  
+  if (is.null(paths)) {
+    paths <- Sys.glob(glue::glue("{parent_path}/*/*_150km_interval_based_eval_using_migration_transitions"))
+  }
+  
   for (path in paths){
     sp <- basename(dirname(path))
-    if (!(file.exists(paste0(path,'/eval_metrics_train_distance_metric_all_combined.rds')) & file.exists(paste0(path,'/eval_metrics_test_distance_metric_all_combined.rds')))){
+    
+    ## load train evaluation
+    train_interval_based <- load_evaluation(path, search_cv, type='train_distance_metric')
+    if (is.null(train_interval_based)) {
       next
     }
-    ## Load 1
-    train_interval_based <- readRDS(paste0(path,'/eval_metrics_train_distance_metric_all_combined.rds'))
-    if (!all(c("traverse_cor_st") %in% names(train_interval_based))) {
-      next
-    }
-    train_interval_based <- train_interval_based |> dplyr::filter(
-        (!is.na(.data[['pit_row']])) & (!is.na(.data[['pit_col']])) & (!is.na(.data[['pit_in_95']]))
-      )
-    if (nrow(train_interval_based) == 0){
-      next
-    }
-    
-    train_interval_based$weighted_mean_ll_improvement <- train_interval_based$weighted_mean_ll - train_interval_based$weighted_mean_null_ll
-    train_interval_based$mean_ll_improvement <- train_interval_based$mean_ll - train_interval_based$mean_null_ll
-    train_interval_based <- train_interval_based |> dplyr::filter((!is.na(.data[['pit_row']])) & (!is.na(.data[['pit_col']])) & (!is.na(.data[['pit_in_95']])))
-    # train_interval_based$weighted_mean_win_distance_quantile <- (train_interval_based$weighted_mean_win_distance - min(train_interval_based$weighted_mean_win_distance))/(max(train_interval_based$weighted_mean_win_distance) - min(train_interval_based$weighted_mean_win_distance))
-    # train_interval_based$weighted_mean_ll_improvement_quantile <- (train_interval_based$weighted_mean_ll_improvement - min(train_interval_based$weighted_mean_ll_improvement))/(max(train_interval_based$weighted_mean_ll_improvement) - min(train_interval_based$weighted_mean_ll_improvement))
-    train_interval_based$mean_win_distance_fraction_quantile <- (train_interval_based$mean_win_distance_fraction - min(train_interval_based$mean_win_distance_fraction))/(max(train_interval_based$mean_win_distance_fraction) - min(train_interval_based$mean_win_distance_fraction))
-    train_interval_based$mean_ll_improvement_quantile <- (train_interval_based$mean_ll_improvement - min(train_interval_based$mean_ll_improvement))/(max(train_interval_based$mean_ll_improvement) - min(train_interval_based$mean_ll_improvement))
-    train_interval_based$ST09_threshold_LL_distance_score <- scale(train_interval_based$weighted_mean_win_distance) + scale(train_interval_based$weighted_mean_ll_improvement)
-    train_interval_based$ST09_threshold_LL_distance_score <- ifelse(train_interval_based$traverse_cor>0.9, train_interval_based$ST09_threshold_LL_distance_score, -999)
-    
-    ideal <- c(max(scale(train_interval_based$traverse_cor)), max(scale(train_interval_based$weighted_mean_ll_improvement)))      # the utopia point
-    train_interval_based$ST_and_LL <- 1 / ((scale(train_interval_based$traverse_cor) - ideal[1])^2 +
-                                             (scale(train_interval_based$weighted_mean_ll_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
-    ideal <- c(max(scale(train_interval_based$traverse_cor)), max(scale(train_interval_based$weighted_energy_improvement)))      # the utopia point
-    train_interval_based$ST_and_energy <- 1 / ((scale(train_interval_based$traverse_cor) - ideal[1])^2 +
-                                             (scale(train_interval_based$weighted_energy_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
-    
-    ideal <- c(max(scale(train_interval_based$traverse_cor_log)), max(scale(train_interval_based$weighted_mean_ll_improvement)))      # the utopia point
-    train_interval_based$ST_and_LL_log <- 1 / ((scale(train_interval_based$traverse_cor_log) - ideal[1])^2 +
-                                             (scale(train_interval_based$weighted_mean_ll_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
-    ideal <- c(max(scale(train_interval_based$traverse_cor_log)), max(scale(train_interval_based$weighted_energy_improvement)))      # the utopia point
-    train_interval_based$ST_and_energy_log <- 1 / ((scale(train_interval_based$traverse_cor_log) - ideal[1])^2 +
-                                                 (scale(train_interval_based$weighted_energy_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
-    
-    train_interval_based$ST098_and_LL <- ifelse(train_interval_based$traverse_cor>0.98, 
-                                             (train_interval_based$weighted_mean_ll_improvement - min(train_interval_based$weighted_mean_ll_improvement)),
-                                             -100)
-    train_interval_based$ST098_and_energy_score <- ifelse(train_interval_based$traverse_cor>0.98, 
-                                                train_interval_based$weighted_energy_improvement,
-                                                -100)
     
     raw_combined[[sp]] <- train_interval_based
     
     ##
-    if (file.exists(paste0(path,'/eval_metrics_train_multi_objective_all_combined.rds'))){
-      ## Load 3
-      train_multi_objective <- readRDS(paste0(path,'/eval_metrics_train_multi_objective_all_combined.rds'))
+    ## Load 3
+    train_multi_objective <- load_evaluation(path, search_cv = T, type='train_multi_objective')
+    if (!is.null(train_multi_objective)) {
       train_interval_based <- train_interval_based |> dplyr::select(-c('overall_des')) |> merge(train_multi_objective[,c('model',
                                                                                                                          'straightness_diff', 'n_stopovers_diff', 'speed_diff', 'overall_des')] #  'pit_d' will be from interval-based data!
                                                                                                 , by = 'model')
       train_interval_based$straightness_diff_d <- (-train_interval_based$straightness_diff - min(-train_interval_based$straightness_diff))/(max(-train_interval_based$straightness_diff) - min(-train_interval_based$straightness_diff))
       train_interval_based$n_stopovers_diff_d <- (-train_interval_based$n_stopovers_diff - min(-train_interval_based$n_stopovers_diff))/(max(-train_interval_based$n_stopovers_diff) - min(-train_interval_based$n_stopovers_diff))
       train_interval_based$speed_diff_d <- (-train_interval_based$speed_diff - min(-train_interval_based$speed_diff))/(max(-train_interval_based$speed_diff) - min(-train_interval_based$speed_diff))
-      raw_combined_with_tracking[[sp]] <- train_interval_based
     }
+
+    raw_combined_with_tracking[[sp]] <- train_interval_based
   }
   
   common_cols <- Reduce(intersect, lapply(raw_combined, names))
   raw_combined <- do.call(rbind, lapply(raw_combined, function(df) df[, common_cols, drop = FALSE]))
-  raw_combined$sp <- sub("(.*)_20[0-9]{2}_150km_.*\\.hdf5$", "\\1", raw_combined$model)
   
   common_cols <- Reduce(intersect, lapply(raw_combined_with_tracking, names))
   raw_combined_with_tracking <- do.call(rbind, lapply(raw_combined_with_tracking, function(df) df[, common_cols, drop = FALSE]))
-  raw_combined_with_tracking$sp <- sub("(.*)_20[0-9]{2}_150km_.*\\.hdf5$", "\\1", raw_combined_with_tracking$model)
-  
-  library(stringr)
-  pattern <- paste0("_ent([0-9\\.]+(?:[eE][+-]?[0-9]+)?)",
-                    "_dist([0-9\\.]+(?:[eE][+-]?[0-9]+)?)",
-                    "_pow([0-9\\.]+(?:[eE][+-]?[0-9]+)?)",
-                    "\\.hdf5$")
-  m <- str_match(raw_combined$model, pattern)
-  raw_combined$ent  <- as.numeric(m[,2])
-  raw_combined$dist <- as.numeric(m[,3])
-  raw_combined$pow  <- as.numeric(m[,4])
-  raw_combined$model_param <- sub("(.*)_20[0-9]{2}_150km_.*\\.hdf5$", "\\1", raw_combined$model)
-  
-  m <- str_match(raw_combined_with_tracking$model, pattern)
-  raw_combined_with_tracking$ent  <- as.numeric(m[,2])
-  raw_combined_with_tracking$dist <- as.numeric(m[,3])
-  raw_combined_with_tracking$pow  <- as.numeric(m[,4])
-  raw_combined_with_tracking$model_param <- sub("(.*)_20[0-9]{2}_150km_.*\\.hdf5$", "\\1", raw_combined_with_tracking$model)
   
   return(list(raw_combined=raw_combined, raw_combined_with_tracking=raw_combined_with_tracking))
 }
 
-
-load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_tracking, include_taxomany_LOO=FALSE,
-                                               ebirdst_year_verson=2023) {
-  ## Round 2: only record the best models
-  load_interval_based_df <- function(path) {
-    interval_based <- readRDS(path)
-    interval_based$weighted_mean_ll_improvement <- interval_based$weighted_mean_ll - interval_based$weighted_mean_null_ll
-    interval_based$mean_ll_improvement <- interval_based$mean_ll - interval_based$mean_null_ll
-    interval_based <- interval_based |> dplyr::filter((!is.na(.data[['pit_row']])) & (!is.na(.data[['pit_col']])) & (!is.na(.data[['pit_in_95']])))
-    if (nrow(interval_based) == 0){
-      return(NULL)
-    }
-    
-    interval_based$mean_win_distance_fraction_quantile <- (interval_based$mean_win_distance_fraction - min(interval_based$mean_win_distance_fraction))/(max(interval_based$mean_win_distance_fraction) - min(interval_based$mean_win_distance_fraction))
-    interval_based$mean_ll_improvement_quantile <- (interval_based$mean_ll_improvement - min(interval_based$mean_ll_improvement))/(max(interval_based$mean_ll_improvement) - min(interval_based$mean_ll_improvement))
-    interval_based$ST09_threshold_LL_distance_score <- scale(interval_based$weighted_mean_win_distance) + scale(interval_based$weighted_mean_ll_improvement)
-    interval_based$ST09_threshold_LL_distance_score <- ifelse(interval_based$traverse_cor>0.9, interval_based$ST09_threshold_LL_distance_score, -999)
-    
-    ideal <- c(max(scale(interval_based$traverse_cor)), max(scale(interval_based$weighted_mean_ll_improvement)))      # the utopia point
-    interval_based$ST_and_LL <- 1 / ((scale(interval_based$traverse_cor) - ideal[1])^2 +
-                                             (scale(interval_based$weighted_mean_ll_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
-    ideal <- c(max(scale(interval_based$traverse_cor)), max(scale(interval_based$weighted_energy_improvement)))      # the utopia point
-    interval_based$ST_and_energy <- 1 / ((scale(interval_based$traverse_cor) - ideal[1])^2 +
-                                                 (scale(interval_based$weighted_energy_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
-    
-    ideal <- c(max(scale(interval_based$traverse_cor_log)), max(scale(interval_based$weighted_mean_ll_improvement)))      # the utopia point
-    interval_based$ST_and_LL_log <- 1 / ((scale(interval_based$traverse_cor_log) - ideal[1])^2 +
-                                       (scale(interval_based$weighted_mean_ll_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
-    ideal <- c(max(scale(interval_based$traverse_cor_log)), max(scale(interval_based$weighted_energy_improvement)))      # the utopia point
-    interval_based$ST_and_energy_log <- 1 / ((scale(interval_based$traverse_cor_log) - ideal[1])^2 +
-                                           (scale(interval_based$weighted_energy_improvement) - ideal[2])^2 + 1e-6) # distance to the best corner
-    
-    interval_based$ST098_and_LL <- ifelse(interval_based$traverse_cor>0.98, 
-                                                (interval_based$weighted_mean_ll_improvement - min(interval_based$weighted_mean_ll_improvement)),
-                                                0)
-    interval_based$ST098_and_energy_score <- ifelse(interval_based$traverse_cor>0.98, 
-                                                    interval_based$weighted_energy_improvement,
-                                                          -100)
-    
-    interval_based <- interval_based |>
-      dplyr::mutate(
-        d_pit_row = desirability2::d_min(.data$pit_row, use_data = TRUE),
-        d_pit_col = desirability2::d_min(.data$pit_col, use_data = TRUE),
-        d_pit_in_95 = ifelse(
-          diff(range(abs(.data$pit_in_95 - 0.95))) == 0,
-          1,
-          desirability2::d_min(abs(.data$pit_in_95 - 0.95), use_data = TRUE)
-        ),
-        pit_d = desirability2::d_overall(dplyr::across(dplyr::starts_with("d_pit"))),
-      )
-    return(interval_based)
+## Round 2: only record the best models
+load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_tracking, paths=NULL, include_taxomany_LOO=FALSE,
+                                               ebirdst_year_verson=2023, search_cv=T, average_cv=T) {
+  if (is.null(paths)) {
+    paths <- Sys.glob(glue::glue("{parent_path}/*/*_150km_interval_based_eval_using_migration_transitions"))
   }
   
+  #
   trait_data <- read.csv('../../data/00.sp_info/All_combined_eco_function_traits.csv')
   trait_data <- ebirdst::ebirdst_runs[,c('species_code', 'common_name')] |> merge(trait_data, by.x='common_name', by.y='Common_Name1_eBird', all.x=T)
   raw_combined <- raw_combined |> merge(trait_data, by.x= 'sp', by.y='species_code', all.x=T)
   raw_combined_with_tracking <- raw_combined_with_tracking |> merge(trait_data, by.x= 'sp', by.y='species_code', all.x=T)
-
+  
   all_res <- list()
   all_res_with_tracking <- list()
   for (path in paths){
     sp <- basename(dirname(path))
     family_ <- c(trait_data[trait_data$species_code==sp, 'FAMILY1_eBird'])[1]
     order_ <- c(trait_data[trait_data$species_code==sp, 'ORDER1_eBird'])[1]
-  
-    if (!(file.exists(paste0(path,'/eval_metrics_train_distance_metric_all_combined.rds')) & file.exists(paste0(path,'/eval_metrics_test_distance_metric_all_combined.rds')))){
-      next
-    }
+
     ## Load 1
-    train_interval_based <- load_interval_based_df(path=paste0(path,'/eval_metrics_train_distance_metric_all_combined.rds'))
+    train_interval_based <- load_evaluation(path, search_cv=search_cv, type='train_distance_metric')
     if (is.null(train_interval_based)){
       next
     }
@@ -183,15 +186,14 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
     }
     
     ## Load 2
-    test_interval_based <- load_interval_based_df(path=paste0(path,'/eval_metrics_test_distance_metric_all_combined.rds'))
+    test_interval_based <-load_evaluation(path, search_cv=F, type='test_distance_metric')
     if (is.null(test_interval_based)){
       next
     }
     
     ## Get biological metrics here!!
-    if (file.exists(paste0(path,'/eval_metrics_train_multi_objective_all_combined.rds'))){
-      ## Load 3
-      train_multi_objective <- readRDS(paste0(path,'/eval_metrics_train_multi_objective_all_combined.rds'))
+    train_multi_objective <- load_evaluation(path, search_cv=search_cv, type='train_multi_objective')
+    if (!is.null(train_multi_objective)) {
       train_interval_based <- train_interval_based |> merge(train_multi_objective[,c('model',
                                                                                      'straightness_diff', 'n_stopovers_diff', 'speed_diff')] #  'pit_d' will be from interval-based data!
                                                             , by = 'model')
@@ -199,7 +201,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
       train_interval_based$n_stopovers_diff_d <- (-train_interval_based$n_stopovers_diff - min(-train_interval_based$n_stopovers_diff))/(max(-train_interval_based$n_stopovers_diff) - min(-train_interval_based$n_stopovers_diff))
       train_interval_based$speed_diff_d <- (-train_interval_based$speed_diff - min(-train_interval_based$speed_diff))/(max(-train_interval_based$speed_diff) - min(-train_interval_based$speed_diff))
     }
-    
+
     # Best models
     best_model_by_ST09_threshold_LL_distance_score <- (train_interval_based |> dplyr::arrange(-ST09_threshold_LL_distance_score))$model[1]
     best_model_by_ST_and_LL <- (train_interval_based |> dplyr::arrange(-ST_and_LL))$model[1]
@@ -597,7 +599,7 @@ load_best_models_validation_all_sp <- function(raw_combined, raw_combined_with_t
                                                                                           'mean_win_distance', 'weighted_mean_win_distance',
                                                                                           'mean_energy_improvement', 'weighted_energy_improvement',
                                                                                           'pit_d','pit_row','pit_col','pit_in_95',
-                                                                                          'traverse_cor', 'traverse_cor_log',
+                                                                                          'mean_dist_cor', 'mean_dist_cor_log',
                                                                                           "synth_routes_prebreeding_migration_straightness", "synth_routes_prebreeding_migration_n_stopovers", "synth_routes_prebreeding_migration_speed",
                                                                                           "synth_routes_breeding_straightness", "synth_routes_breeding_n_stopovers", "synth_routes_breeding_speed",
                                                                                           "synth_routes_postbreeding_migration_straightness", "synth_routes_postbreeding_migration_n_stopovers", "synth_routes_postbreeding_migration_speed",

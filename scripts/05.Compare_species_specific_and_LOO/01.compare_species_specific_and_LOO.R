@@ -5,8 +5,8 @@ library(dplyr)
 
 setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/05.Compare_species_specific_and_LOO/')
 
-load_all("/home/yc85_illinois_edu/BirdFlowPipeline") # if only r script is changed, you can do it. Otherwise reinstall.
-load_all("/home/yc85_illinois_edu/BirdFlowR") # if only r script is changed, you can do it. Otherwise reinstall.
+# load_all("/home/yc85_illinois_edu/BirdFlowPipeline") # if only r script is changed, you can do it. Otherwise reinstall.
+# load_all("/home/yc85_illinois_edu/BirdFlowR") # if only r script is changed, you can do it. Otherwise reinstall.
 
 source('../plotting_params/plotting_params.R')
 # source('../02.Summarize_validation_preliminary/load_data_functions.R')
@@ -379,22 +379,24 @@ all_res_long$`Family-LOO` <- all_res_long$`LOO_FAMILY`
 all_res_long$`Order-LOO` <- all_res_long$`LOO_ORDER`
 
 df_long <- all_res_long |>
-  select(`Species-specific`, `Family-LOO`, `Order-LOO`) |>
-  pivot_longer(
+  dplyr::select(`Species-specific`, `Family-LOO`, `Order-LOO`) |>
+  tidyr::pivot_longer(
     cols = everything(),
     names_to = "method",
     values_to = "LOO"
   )
 df_long$method <- factor(df_long$method, levels = c("Order-LOO", "Family-LOO", "Species-specific"))
 means <- df_long |>
-  group_by(method) |>
-  summarise(median_val = median(LOO, na.rm = TRUE),
+  dplyr::group_by(method) |>
+  dplyr::summarise(median_val = median(LOO, na.rm = TRUE),
             mean_val = mean(LOO, na.rm = TRUE))
 
 p <- ggplot(df_long, aes(x = LOO, fill = method)) +
   geom_histogram(bins = 30, color = "black") +
   geom_vline(data = means, aes(xintercept = mean_val),
              color = "red", linetype = "dashed", linewidth = 1) +
+  geom_vline(data = as.data.frame(list(mean_val=0)), aes(xintercept = mean_val),
+             color = "darkgray", linetype = "dashed", linewidth = 1) +
   facet_wrap(~ method, ncol = 1, scales = "free_y") +
   scale_fill_manual(values = c(
     "Species-specific" = "steelblue",
@@ -452,22 +454,24 @@ all_res_long$`Family-LOO` <- all_res_long$`LOO_FAMILY`
 all_res_long$`Order-LOO` <- all_res_long$`LOO_ORDER`
 
 df_long <- all_res_long |>
-  select(`Species-specific`, `Family-LOO`, `Order-LOO`) |>
-  pivot_longer(
+  dplyr::select(`Species-specific`, `Family-LOO`, `Order-LOO`) |>
+  tidyr::pivot_longer(
     cols = everything(),
     names_to = "method",
     values_to = "LOO"
   )
 df_long$method <- factor(df_long$method, levels = c("Order-LOO", "Family-LOO", "Species-specific"))
 means <- df_long |>
-  group_by(method) |>
-  summarise(median_val = median(LOO, na.rm = TRUE),
+  dplyr::group_by(method) |>
+  dplyr::summarise(median_val = median(LOO, na.rm = TRUE),
             mean_val = mean(LOO, na.rm = TRUE))
 
 p <- ggplot(df_long, aes(x = LOO, fill = method)) +
   geom_histogram(bins = 30, color = "black") +
   geom_vline(data = means, aes(xintercept = mean_val),
              color = "red", linetype = "dashed", linewidth = 1) +
+  geom_vline(data = as.data.frame(list(mean_val=0)), aes(xintercept = mean_val),
+             color = "darkgray", linetype = "dashed", linewidth = 1) +
   facet_wrap(~ method, ncol = 1, scales = "free_y") +
   scale_fill_manual(values = c(
     "Species-specific" = "steelblue",
@@ -525,22 +529,24 @@ all_res_long$`Family-LOO` <- all_res_long$`LOO_FAMILY`
 all_res_long$`Order-LOO` <- all_res_long$`LOO_ORDER`
 
 df_long <- all_res_long |>
-  select(`Species-specific`, `Family-LOO`, `Order-LOO`) |>
-  pivot_longer(
+  dplyr::select(`Species-specific`, `Family-LOO`, `Order-LOO`) |>
+  tidyr::pivot_longer(
     cols = everything(),
     names_to = "method",
     values_to = "LOO"
   )
 df_long$method <- factor(df_long$method, levels = c("Order-LOO", "Family-LOO", "Species-specific"))
 means <- df_long |>
-  group_by(method) |>
-  summarise(median_val = median(LOO, na.rm = TRUE),
+  dplyr::group_by(method) |>
+  dplyr::summarise(median_val = median(LOO, na.rm = TRUE),
             mean_val = mean(LOO, na.rm = TRUE))
 
 p <- ggplot(df_long, aes(x = LOO, fill = method)) +
   geom_histogram(bins = 30, color = "black") +
   geom_vline(data = means, aes(xintercept = mean_val),
              color = "red", linetype = "dashed", linewidth = 1) +
+  geom_vline(data = as.data.frame(list(mean_val=0)), aes(xintercept = mean_val),
+             color = "darkgray", linetype = "dashed", linewidth = 1) +
   facet_wrap(~ method, ncol = 1, scales = "free_y") +
   scale_fill_manual(values = c(
     "Species-specific" = "steelblue",

@@ -11,12 +11,12 @@ source('load_data_functions.R')
 
 ### Step 1: load validation data
 ## load data of all models in grid search
-res <- load_raw_validation_all_sp()
+res <- load_raw_validation_all_sp(search_cv=F)
 raw_combined <- res[['raw_combined']]
 raw_combined_with_tracking <-  res[['raw_combined_with_tracking']]
 
 ## Summarize the best models based on model selection method
-res <- load_best_models_validation_all_sp(raw_combined, raw_combined_with_tracking, include_taxomany_LOO=TRUE)
+res <- load_best_models_validation_all_sp(raw_combined, raw_combined_with_tracking, search_cv=F, include_taxomany_LOO=TRUE)
 all_res <- res[['all_res']] # this will be saved later, after merging with other information
 all_res_with_tracking <- res[['all_res_with_tracking']]
 
@@ -41,8 +41,8 @@ for (sp in all_sp){
     next
   }
   
-  train_file <- glue::glue('{parent_path}/{sp}/{sp}_150km_interval_based_eval_using_migration_transitions/each_transition_evaluation/train_each_transition_evaluation_all_combined_{sp}_2022_150km_obs1.0_ent0.010526_dist0.042105_pow0.2.hdf5.rds')
-  test_file <- glue::glue('{parent_path}/{sp}/{sp}_150km_interval_based_eval_using_migration_transitions/each_transition_evaluation/test_each_transition_evaluation_all_combined_{sp}_2022_150km_obs1.0_ent0.010526_dist0.042105_pow0.2.hdf5.rds')
+  train_file <- glue::glue('{parent_path}/{sp}/{sp}_150km_interval_based_eval_using_migration_transitions/each_transition_evaluation/train_each_transition_evaluation_all_combined_{sp}_2023_150km_obs1.0_ent0.010526_dist0.042105_pow0.2.hdf5.rds')
+  test_file <- glue::glue('{parent_path}/{sp}/{sp}_150km_interval_based_eval_using_migration_transitions/each_transition_evaluation/test_each_transition_evaluation_all_combined_{sp}_2023_150km_obs1.0_ent0.010526_dist0.042105_pow0.2.hdf5.rds')
   if (!(file.exists(train_file) && file.exists(test_file))) {
     next
   }

@@ -28,8 +28,9 @@ unique_names <- c(
 
 
 #### Batch fit
-unique_names <- unique_names #c('ovenbi1', 'paibun', 'whimbr', 'lobcur', 'osprey', 'tunswa', 'bkbplo') #c('lobcur') #c('amewoo', 'buwtea', 'swahaw', 'brwhaw', 'woothr') #, 'lobcur',
-# unique_names <- c('amewoo')
+unique_names <- unique_names #c('ovenbi1', 'paibun', 'whimbr', , ) #c('lobcur') #c('amewoo', 'buwtea', 'swahaw', 'brwhaw', 'woothr') #, 'lobcur',
+unique_names <- c('amewoo','brnpel', 'brwhaw', 'swathr', 'baleag', 'amebit', 'ovenbi1', 'paibun', 'woothr', 'whimbr', 'tunswa', 'bkbplo', 'lobcur', 'osprey', 'turvul', 'swahaw', 'buwtea')
+# unique_names <- c('amebit')
 # unique_names <- c('norpin')
 for (sp in unique_names){
   print(sp)
@@ -44,7 +45,7 @@ for (sp in unique_names){
     rds2 <- readRDS(file2)
     pass <- TRUE
     for (target in c('traverse_cor_st','weighted_energy_improvement','weighted_mean_win_distance_fraction','synth_routes_prebreeding_migration_straightness',
-                     'end_traverse_cor_whole_year')){
+                     'traverse_cor_whole_year')){
       if (!((target %in% names(rds1)) & (target %in% names(rds2)))){
         pass <- FALSE
       }
@@ -60,7 +61,11 @@ for (sp in unique_names){
 
   tryCatch({
     batch_flow(sp, 
+               training_CV = NULL,
+               use_cached_data = TRUE,
+               cached_path=sp_output_path,
                gpu_ram = 10,
+               training_n_transitions = NULL,
                hdf_path = sp_output_path,
                base_output_path = sp_output_path,
                model_selection = 'distance_metric',

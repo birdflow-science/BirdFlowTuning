@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=train_model
+#SBATCH --job-name=train_model_learning_curve
 #SBATCH --partition=cpu
 #SBATCH --nodes=1
 #SBATCH --time=2-00:00:00
