@@ -22,16 +22,19 @@ load_all("/home/yc85_illinois_edu/BirdFlowPipeline") # if only r script is chang
 load_all("/home/yc85_illinois_edu/BirdFlowR") # if only r script is changed, you can do it. Otherwise reinstall.
 
 unique_names <- c(
-  gsub('.rds','',list.files('/work/pi_drsheldon_umass_edu/birdflow_modeling/pipeline/motus/rds/')),
-  gsub('.rds','',list.files('/work/pi_drsheldon_umass_edu/birdflow_modeling/pipeline/banding/rds/'))
+  gsub('.rds','',list.files('/work/pi_drsheldon_umass_edu/birdflow_modeling/pipeline/ground_truth_data/raw_data/motus/rds/')),
+  gsub('.rds','',list.files('/work/pi_drsheldon_umass_edu/birdflow_modeling/pipeline/ground_truth_data/raw_data/banding/rds/')),
+  sub("_.*", "", list.files('/work/pi_drsheldon_umass_edu/birdflow_modeling/pipeline/ground_truth_data/raw_data/tracking/', recursive = F, include.dirs=F, pattern = "\\.csv$", full.names = FALSE))
 ) |> unique()
 
 
 #### Batch fit
 unique_names <- unique_names #c('ovenbi1', 'paibun', 'whimbr', , ) #c('lobcur') #c('amewoo', 'buwtea', 'swahaw', 'brwhaw', 'woothr') #, 'lobcur',
-unique_names <- c('amewoo','brnpel', 'brwhaw', 'swathr', 'baleag', 'amebit', 'ovenbi1', 'paibun', 'woothr', 'whimbr', 'tunswa', 'bkbplo', 'lobcur', 'osprey', 'turvul', 'swahaw', 'buwtea')
+# sp <- 'woothr'
+# unique_names <- c('amewoo','brnpel', 'brwhaw', 'swathr', 'baleag', 'amebit', 'ovenbi1', 'paibun', 'woothr', 'whimbr', 'tunswa', 'bkbplo', 'lobcur', 'osprey', 'turvul', 'swahaw', 'buwtea')
 # unique_names <- c('amebit')
 # unique_names <- c('norpin')
+
 for (sp in unique_names){
   print(sp)
   sp_output_path <- paste0('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric','/',sp)
@@ -61,7 +64,7 @@ for (sp in unique_names){
 
   tryCatch({
     batch_flow(sp, 
-               training_CV = NULL,
+               training_CV = 1,
                use_cached_data = TRUE,
                cached_path=sp_output_path,
                gpu_ram = 10,

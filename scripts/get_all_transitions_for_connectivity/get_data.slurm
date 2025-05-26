@@ -9,9 +9,7 @@
 #SBATCH --output=/dev/null
 #SBATCH --error=/dev/null
 
-LOG_DIR=./log_files
-mkdir -p "$LOG_DIR"
-LOG_FILE="${LOG_DIR}/${1}.log"
+LOG_FILE="output.log"
 
 # Log environment information (optional)
 echo "Running on node: $(hostname)" > "$LOG_FILE"
@@ -26,11 +24,14 @@ echo "----------------------------------------" >> "$LOG_FILE"
 
 exec >> "$LOG_FILE" 2>&1
 
-#module load r-rocker-ml-verse/4.2.3+apptainer
-module load r-rocker-ml-verse/4.3.2+apptainer
+module load apptainer/latest
 shopt -s expand_aliases
+CONTAINER=/work/pi_drsheldon_umass_edu/birdflow_modeling/BirdFlowContainer45/BirdFlowContainer.sif
 
-Rscript --no-restore --quiet --no-save get_data.R ${1}
+apptainer exec \
+  --bind '' \
+  $CONTAINER \
+  Rscript --no-restore --quiet --no-save -e "library(BirdFlowPipeline); combine_data_for_all_sp()"
 
 
 # Capture exit code

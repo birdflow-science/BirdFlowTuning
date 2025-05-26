@@ -3,14 +3,19 @@
 #SBATCH --partition=cpu
 #SBATCH --nodes=1
 #SBATCH --time=2-00:00:00
-#SBATCH --mem=5G
+#SBATCH --mem=12G
 ##SBATCH --gres=gpu:1
 #SBATCH --exclude=toltec-cpu[001-007]
 
 #module load r-rocker-ml-verse/4.2.3+apptainer
-module load r-rocker-ml-verse/4.3.2+apptainer
+module load apptainer/latest                  # load the apptainer/singularity runtime
 shopt -s expand_aliases
+CONTAINER=/work/pi_drsheldon_umass_edu/birdflow_modeling/BirdFlowContainer45/BirdFlowContainer.sif
 
-Rscript --no-restore --quiet --no-save batch_flow_more_sp.R
+apptainer exec \
+  --bind '' \
+  $CONTAINER \
+  Rscript --no-restore --quiet --no-save batch_flow_more_sp.R
+
 
 
