@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=train_model
+#SBATCH --job-name=get_data
 #SBATCH --partition=cpu
 #SBATCH --nodes=1
 #SBATCH --time=2-00:00:00
@@ -26,7 +26,7 @@ exec >> "$LOG_FILE" 2>&1
 
 module load apptainer/latest
 shopt -s expand_aliases
-CONTAINER=/work/pi_drsheldon_umass_edu/birdflow_modeling/BirdFlowContainer45/BirdFlowContainer.sif
+CONTAINER=/work/pi_drsheldon_umass_edu/birdflow_modeling/BirdFlowContainer/BirdFlowContainer.sif
 
 apptainer exec \
   --bind '' \

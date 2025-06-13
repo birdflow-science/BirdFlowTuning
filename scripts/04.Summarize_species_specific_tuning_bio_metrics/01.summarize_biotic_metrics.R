@@ -31,6 +31,10 @@ for (line_count in 1:dim(tmp)[1]) {
   params$season <- 'postbreeding'
   real_track2 <- get_real_track(bf, params, filter=TRUE) #
   real_track$data <- rbind(real_track$data, real_track2$data)
+  if (is.null(real_track)) {
+    print(paste0('No tracking data: ', sp))
+    next
+  }
   
   splitted_track <- split(real_track$data, real_track$data$route_id)
   all_route_stats <- list()
@@ -156,6 +160,33 @@ dev.off()
 new_all_conditional_rts_stats_res <- 
   all_conditional_rts_stats_res[,c('sp', 'common_name', 'speed_synth', 'speed_real')] |>
   na.omit()
+cor_stats <- new_all_conditional_rts_stats_res |>
+  group_by(common_name) |>
+  summarize(
+    r = cor(speed_real, speed_synth),
+    .groups = "drop"
+  )
+overall_cor_stats <- new_all_conditional_rts_stats_res |>
+  summarize(
+    r = cor(speed_real, speed_synth)
+  )
+overall_r <- overall_cor_stats$r
+mean_r  <- mean(cor_stats$r)
+range_r <- range(cor_stats$r)
+annot_text <- sprintf(
+  "Overall Pearson's r = %.2f\nMean Pearson's r = %.2f\nRange = %.2f–%.2f",
+  overall_r, mean_r, range_r[1], range_r[2]
+)
+library(grid)
+lbl <- textGrob(
+  annot_text,
+  x = unit(1, "npc") - unit(17.5, "lines"),
+  y = unit(18, "lines"),
+  just = c("left", "top"),
+  gp = gpar(fontsize = 16)
+)
+
+
 trans_breaks_x <- seq(
   sqrt(min(new_all_conditional_rts_stats_res$speed_real) + 1),
   sqrt(max(new_all_conditional_rts_stats_res$speed_real) + 1),
@@ -170,13 +201,13 @@ trans_breaks_y <- seq(
 )
 orig_breaks_y <- trans_breaks_y**2 - 1
 
-p <- ggplot(new_all_conditional_rts_stats_res, 
+p_speed <- ggplot(new_all_conditional_rts_stats_res, 
        aes(x = (speed_real+1)^(1/2), y=(speed_synth+1)^(1/2), color = common_name, fill = common_name)) +
   geom_point(alpha = 0.5) +
-  # geom_smooth(method='lm', aes(color=common_name), alpha = 0.1) +
+  geom_smooth(method='lm', aes(color=common_name), alpha = 0.1) +
   scale_color_brewer(palette = "Paired", name = "Species") +
   scale_fill_brewer(palette = "Paired", name = "Species") +
-  labs(x = 'Observed migration speed (km/day)', y = 'Modeled migration speed (km/day)') +
+  labs(x = 'Observed migration speed (km/day)', y = 'Modeled migration speed\n(km/day)') +
   geom_abline(intercept = 0,
               slope = 1,
               color = "red2",
@@ -190,12 +221,15 @@ p <- ggplot(new_all_conditional_rts_stats_res,
     labels = round(orig_breaks_y/1000, 0)
   ) +
   my_plotting_params[['theme']] +
-  my_plotting_params[['formater']]
+  my_plotting_params[['formater']] +
+  annotation_custom(lbl)
+p_speed
+
 
 # save
 cairo_pdf('../../data/05.Summarize_biological_metrics/02.migration_speed_all_in_one.pdf',
           width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
-print(p)
+print(p_speed)
 dev.off()
 
 
@@ -203,7 +237,34 @@ dev.off()
 new_all_conditional_rts_stats_res <- 
   all_conditional_rts_stats_res[,c('sp', 'common_name', 'n_stopovers_synth', 'n_stopovers_real')] |>
   na.omit()
-p <- ggplot(new_all_conditional_rts_stats_res, 
+cor_stats <- new_all_conditional_rts_stats_res |>
+  group_by(common_name) |>
+  summarize(
+    r = cor(n_stopovers_real, n_stopovers_synth),
+    .groups = "drop"
+  )
+cor_stats <- na.omit(cor_stats)
+overall_cor_stats <- new_all_conditional_rts_stats_res |>
+  summarize(
+    r = cor(n_stopovers_real, n_stopovers_synth)
+  )
+overall_r <- overall_cor_stats$r
+mean_r  <- mean(cor_stats$r)
+range_r <- range(cor_stats$r)
+annot_text <- sprintf(
+  "Overall Pearson's r = %.2f\nMean Pearson's r = %.2f\nRange = %.2f–%.2f",
+  overall_r, mean_r, range_r[1], range_r[2]
+)
+library(grid)
+lbl <- textGrob(
+  annot_text,
+  x = unit(1, "npc") - unit(17.5, "lines"),
+  y = unit(18, "lines"),
+  just = c("left", "top"),
+  gp = gpar(fontsize = 16)
+)
+
+p_stopover <- ggplot(new_all_conditional_rts_stats_res, 
             aes(x = n_stopovers_real, y=n_stopovers_synth, color = common_name, fill = common_name)) +
   geom_jitter(alpha = 0.5, width=0.1, height = 0.1) +
   geom_smooth(method='lm', aes(color=common_name), alpha = 0.1) +
@@ -215,12 +276,14 @@ p <- ggplot(new_all_conditional_rts_stats_res,
               color = "red2",
               linetype = "dashed") +
   my_plotting_params[['theme']] +
-  my_plotting_params[['formater']]
+  my_plotting_params[['formater']] +
+  annotation_custom(lbl)
+p_stopover
 
 # save
 cairo_pdf('../../data/05.Summarize_biological_metrics/03.n_stopovers_all_in_one.pdf',
           width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
-print(p)
+print(p_stopover)
 dev.off()
 
 
@@ -229,7 +292,34 @@ dev.off()
 new_all_conditional_rts_stats_res <- 
   all_conditional_rts_stats_res[,c('sp', 'common_name', 'straightness_synth', 'straightness_real')] |>
   na.omit()
-p <- ggplot(new_all_conditional_rts_stats_res, 
+cor_stats <- new_all_conditional_rts_stats_res |>
+  group_by(common_name) |>
+  summarize(
+    r = cor(straightness_real, straightness_synth),
+    .groups = "drop"
+  )
+overall_cor_stats <- new_all_conditional_rts_stats_res |>
+  summarize(
+    r = cor(straightness_real, straightness_synth)
+  )
+overall_r <- overall_cor_stats$r
+mean_r  <- mean(cor_stats$r)
+range_r <- range(cor_stats$r)
+annot_text <- sprintf(
+  "Overall Pearson's r = %.2f\nMean Pearson's r = %.2f\nRange = %.2f–%.2f",
+  overall_r, mean_r, range_r[1], range_r[2]
+)
+library(grid)
+lbl <- textGrob(
+  annot_text,
+  x = unit(1, "npc") - unit(17.5, "lines"),
+  y = unit(18, "lines"),
+  just = c("left", "top"),
+  gp = gpar(fontsize = 16)
+)
+
+
+p_straightness <- ggplot(new_all_conditional_rts_stats_res, 
             aes(x = straightness_real, y=straightness_synth, color = common_name, fill = common_name)) +
   geom_point(alpha = 0.5) +
   geom_smooth(method='lm', aes(color=common_name), alpha = 0.1) +
@@ -241,11 +331,30 @@ p <- ggplot(new_all_conditional_rts_stats_res,
               color = "red2",
               linetype = "dashed") +
   my_plotting_params[['theme']] +
-  my_plotting_params[['formater']]
+  my_plotting_params[['formater']] +
+  annotation_custom(lbl)
+p_straightness
 
 # save
 cairo_pdf('../../data/05.Summarize_biological_metrics/04.straightness_all_in_one.pdf',
           width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
 print(p)
+dev.off()
+
+### Combine together
+library(patchwork)
+pp <- p_speed + theme(legend.position = "none") + theme(plot.margin = unit(c(0, 0.5, 0, 0.5), "cm")) +
+  p_stopover + theme(legend.position = "none") + theme(plot.margin = unit(c(0, 0.5, 0, 0.5), "cm")) + 
+  p_straightness + theme(plot.margin = unit(c(0, 0.5, 0, 0.5), "cm")) + 
+  plot_annotation(tag_levels = list(c('(a)','(b)', '(c)'))) & 
+  theme(
+    plot.tag = element_text(size = 25, face = "bold"),
+    plot.tag.position  = c(0.01, 1)
+  )
+
+# save
+cairo_pdf('../../data/05.Summarize_biological_metrics/04.BIO_ALL_COMBINED.pdf',
+          width = my_plotting_params[['single_plot_width']]*2.5, height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
+print(pp)
 dev.off()
 

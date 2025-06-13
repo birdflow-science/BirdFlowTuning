@@ -29,44 +29,45 @@ unique_names <- c(
 
 
 #### Batch fit
-unique_names <- unique_names #c('ovenbi1', 'paibun', 'whimbr', , ) #c('lobcur') #c('amewoo', 'buwtea', 'swahaw', 'brwhaw', 'woothr') #, 'lobcur',
+# unique_names <- c('lobcur', 'turvul', 'graspa') #c('amewoo', 'acafly', 'ameavo', 'woothr')#unique_names #c('ovenbi1', 'paibun', 'whimbr', , ) #c('lobcur') #c('amewoo', 'buwtea', 'swahaw', 'brwhaw', 'woothr') #, 'lobcur',
 # sp <- 'woothr'
 # unique_names <- c('amewoo','brnpel', 'brwhaw', 'swathr', 'baleag', 'amebit', 'ovenbi1', 'paibun', 'woothr', 'whimbr', 'tunswa', 'bkbplo', 'lobcur', 'osprey', 'turvul', 'swahaw', 'buwtea')
 # unique_names <- c('amebit')
 # unique_names <- c('norpin')
+
+unique_names <- c('sonspa', 'redhea', 'brnpel', 'semsan')#'woothr', 'purfin') #'purfin', 'woothr', 'cangoo', 'mallar3', 'amewoo',
 
 for (sp in unique_names){
   print(sp)
   sp_output_path <- paste0('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric','/',sp)
   if (!dir.exists(sp_output_path)){dir.create(sp_output_path, recursive = TRUE)}
 
-  ## Load
-  file1 <- glue::glue("/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km_interval_based_eval_using_migration_transitions/eval_metrics_train_distance_metric_all_combined.rds")
-  file2 <- glue::glue("/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km_interval_based_eval_using_migration_transitions/eval_metrics_test_distance_metric_all_combined.rds")
-  if (file.exists(file1) & file.exists(file2)){
-    rds1 <- readRDS(file1)
-    rds2 <- readRDS(file2)
-    pass <- TRUE
-    for (target in c('traverse_cor_st','weighted_energy_improvement','weighted_mean_win_distance_fraction','synth_routes_prebreeding_migration_straightness',
-                     'traverse_cor_whole_year')){
-      if (!((target %in% names(rds1)) & (target %in% names(rds2)))){
-        pass <- FALSE
-      }
-    }
-
-    if (pass){
-      print(glue::glue('Already finished for {sp}'))
-      next
-    } else {
-      print(glue::glue('The existing files not passed for {sp}; Rerun.'))
-    }
-  }
+  # ## Load
+  # file1 <- glue::glue("/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km_interval_based_eval_using_migration_transitions/eval_metrics_train_distance_metric_all_combined.rds")
+  # file2 <- glue::glue("/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km_interval_based_eval_using_migration_transitions/eval_metrics_test_distance_metric_all_combined.rds")
+  # if (file.exists(file1) & file.exists(file2)){
+  #   rds1 <- readRDS(file1)
+  #   rds2 <- readRDS(file2)
+  #   pass <- TRUE
+  #   for (target in c('connectivity_diff','weighted_energy_improvement',
+  #                    'weighted_mean_win_distance_fraction','synth_routes_prebreeding_migration_straightness')){
+  #     if (!((target %in% names(rds1)) & (target %in% names(rds2)))){
+  #       pass <- FALSE
+  #     }
+  #   }
+  # 
+  #   if (pass){
+  #     print(glue::glue('Already finished for {sp}'))
+  #     next
+  #   } else {
+  #     print(glue::glue('The existing files not passed for {sp}; Rerun.'))
+  #   }
+  # }
 
   tryCatch({
     batch_flow(sp, 
                training_CV = 1,
-               use_cached_data = TRUE,
-               cached_path=sp_output_path,
+               use_cached_data = T,
                gpu_ram = 10,
                training_n_transitions = NULL,
                hdf_path = sp_output_path,

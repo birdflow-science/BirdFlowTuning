@@ -5,130 +5,215 @@ library(devtools)
 setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/02.Summarize_validation_preliminary/')
 source('load_data_functions.R')
 # source('my_distribution_performance.R')
+# devtools::install_local("/home/yc85_illinois_edu/BirdFlowR", force = T, dependencies = FALSE) # if the BirdFlowR is updated, we need to reinstall it, so that i can be used in BirdFlowPipeline!
+# devtools::install_local("/home/yc85_illinois_edu/BirdFlowPipeline", force = T, dependencies = FALSE)
+load_all("/home/yc85_illinois_edu/BirdFlowPipeline")
 
 ## load data
-res <- load_raw_validation_all_sp()
-raw_combined <- res[['raw_combined']]
-raw_combined_with_tracking <-  res[['raw_combined_with_tracking']]
+# res <- load_raw_validation_all_sp()
+# raw_combined <- res[['raw_combined']]
+# raw_combined_with_tracking <-  res[['raw_combined_with_tracking']]
+# 
+# res <- load_best_models_validation_all_sp(raw_combined, raw_combined_with_tracking)
+# all_res <- res[['all_res']]
+# all_res_with_tracking <- res[['all_res_with_tracking']]
 
-res <- load_best_models_validation_all_sp(raw_combined, raw_combined_with_tracking)
-all_res <- res[['all_res']]
-all_res_with_tracking <- res[['all_res_with_tracking']]
+all_res <- read.csv('../../data/03.All_validation_summary/validation_final_summary.csv')
+raw_combined <- read.csv('../../data/03.All_validation_summary/validation_all_models_gridsearch_summary.csv')
 
+res <- raw_combined |> dplyr::group_by(sp) |> 
+  dplyr::arrange(-.data[['weighted_mean_ll_improvement']]) |> 
+  dplyr::slice(1) |>
+  dplyr::ungroup()
 
-sp <- 'yelwar'
-bf1 <- BirdFlowR::import_birdflow(paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), all_res[(all_res$method=='LL') & (all_res$sp==sp),]$model))
-bf2 <- BirdFlowR::import_birdflow(paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), all_res[(all_res$method=='ST_and_LL') & (all_res$sp==sp),]$model))
-bf3 <- BirdFlowR::import_birdflow(paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), all_res[(all_res$method=='ST_and_LL_log') & (all_res$sp==sp),]$model))
-
-plot(BirdFlowR::route(bf2, n=500))
-
-# bf <- BirdFlowR::import_birdflow(paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric_log_obs/{sp}/{sp}_150km/'), ))
-for (bf in list(bf1, bf2, bf3)) {
-  print(BirdFlowR::distribution_performance(bf, metrics = 'md_traverse_cor', season = 'prebreeding', log=T)$md_traverse_cor)
-  print(BirdFlowR::distribution_performance(bf, metrics = 'md_traverse_cor', log=T)$md_traverse_cor)
-  print(BirdFlowR::distribution_performance(bf, metrics = 'mean_distr_cor', log=T, season = 'prebreeding')$mean_distr_cor)
-  # BirdFlowR::distribution_performance(bf, metrics = 'mean_distr_cor', log=T)$mean_distr_cor
-  print('----')
-}
-
-for (bf in list(bf1, bf2, bf3)) {
-  print(BirdFlowR::distribution_performance(bf, metrics = 'md_traverse_cor', season = 'prebreeding')$md_traverse_cor)
-  print(BirdFlowR::distribution_performance(bf, metrics = 'md_traverse_cor')$md_traverse_cor)
-  print(BirdFlowR::distribution_performance(bf, metrics = 'mean_distr_cor', season = 'prebreeding')$mean_distr_cor)
-  # BirdFlowR::distribution_performance(bf, metrics = 'mean_distr_cor', log=T)$mean_distr_cor
-  print('----')
-}
-
-for (bf in list(bf1, bf2, bf3)) {
-  print(BirdFlowR::distribution_performance(bf, metrics = 'md_traverse_cor', season = 'prebreeding', log=T)$md_traverse_cor)
-  res <- my_distribution_performance(bf, season = 'prebreeding', log=T)
-  plot(res[[1]], res[[2]])
-  res <- my_distribution_performance(bf, season = 'prebreeding', log=F)
-  plot(res[[1]], res[[2]])
-  print('----')
-}
-
-
-
-plot(raw_combined[(raw_combined$sp=='ovenbi1'),]$end_traverse_cor,
-     raw_combined[(raw_combined$sp=='ovenbi1'),]$end_traverse_cor_log)
-plot(raw_combined[(raw_combined$sp=='ovenbi1'),][raw_combined[(raw_combined$sp=='ovenbi1'),]$end_traverse_cor>0.99,]$end_traverse_cor,
-     raw_combined[(raw_combined$sp=='ovenbi1'),][raw_combined[(raw_combined$sp=='ovenbi1'),]$end_traverse_cor>0.99,]$end_traverse_cor_log)
-plot(raw_combined[(raw_combined$sp=='amewoo'),]$end_traverse_cor,
-     raw_combined[(raw_combined$sp=='amewoo'),]$end_traverse_cor_log)
-plot(raw_combined[(raw_combined$sp=='amewoo'),][raw_combined[(raw_combined$sp=='amewoo'),]$end_traverse_cor>0.99,]$end_traverse_cor,
-     raw_combined[(raw_combined$sp=='amewoo'),][raw_combined[(raw_combined$sp=='amewoo'),]$end_traverse_cor>0.99,]$end_traverse_cor_log)
-plot(raw_combined[(raw_combined$sp=='yelwar'),]$end_traverse_cor,
-     raw_combined[(raw_combined$sp=='yelwar'),]$end_traverse_cor_log)
-plot(raw_combined[(raw_combined$sp=='yelwar'),][raw_combined[(raw_combined$sp=='yelwar'),]$end_traverse_cor>0.99,]$end_traverse_cor,
-     raw_combined[(raw_combined$sp=='yelwar'),][raw_combined[(raw_combined$sp=='yelwar'),]$end_traverse_cor>0.99,]$end_traverse_cor_log)
-
-sp = 'treswa'
-plot(raw_combined[(raw_combined$sp==sp),]$end_traverse_cor_log,
-     raw_combined[(raw_combined$sp==sp),]$weighted_mean_ll_improvement)
-
-plot(raw_combined[(raw_combined$sp==sp),]$end_traverse_cor,
-     raw_combined[(raw_combined$sp==sp),]$weighted_mean_ll_improvement)
+hist(res$mean_dist_cor, breaks=20)
+hist(res$traverse_cor, breaks=20)
 
 ##
-tmp <- raw_combined[raw_combined$sp==sp,]
-# tmp1 <- raw_combined_log_obs[(raw_combined_log_obs$sp==sp),][raw_combined_log_obs[(raw_combined_log_obs$sp==sp),]$weighted_mean_ll_improvement>2.5,]
-# tmp <- raw_combined[(raw_combined$sp==sp),][raw_combined[(raw_combined$sp==sp),]$weighted_mean_ll_improvement>2.5,]
-
-##
-model <- BirdFlowR::import_birdflow(
-  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), tmp[(tmp['min_dist_cor']>0.8) & (tmp['min_dist_cor']<0.9),]$model[1])
-)
-plot(plot(BirdFlowR::route(
-  model,
-  n=500)))
-res <- my_distribution_performance(model, season = 'prebreeding', log=F)
-plot(res[[1]], res[[2]])
-res <- my_distribution_performance(model, season = 'prebreeding', log=T)
-plot(res[[1]], res[[2]])
-
-##
-model <- BirdFlowR::import_birdflow(
-  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), tmp[(tmp['end_traverse_cor']>0.9) & (tmp['end_traverse_cor']<0.95),]$model[1])
-)
-plot(plot(BirdFlowR::route(
-  model,
-  n=500)))
-res <- my_distribution_performance(model, season = 'prebreeding', log=F)
-plot(res[[1]], res[[2]])
-res <- my_distribution_performance(model, season = 'prebreeding', log=T)
-plot(res[[1]], res[[2]])
-
-
-##
-sp <- 'amewoo'
+sp <- 'cangoo'
 tmp <- raw_combined[raw_combined$sp==sp,]
 
 ##
 model <- BirdFlowR::import_birdflow(
-  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), tmp[(tmp['mean_dist_cor']>0.8) & (tmp['mean_dist_cor']<0.9),]$model[1])
+  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'),
+         (tmp[(tmp['mean_dist_cor']>0.8) & (tmp['mean_dist_cor']<0.9),] |> dplyr::arrange(-.data[['weighted_mean_ll_improvement']]))$model[1])
 )
 plot(plot(BirdFlowR::route(
   model,
-  n=100)))
+  n=500)))
 
 ##
 model <- BirdFlowR::import_birdflow(
-  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), tmp[(tmp['mean_dist_cor']>0.95) & (tmp['mean_dist_cor']<0.98),]$model[1])
+  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), 
+         (tmp[(tmp['mean_dist_cor']>0.9) & (tmp['mean_dist_cor']<0.95),] |> dplyr::arrange(-.data[['weighted_mean_ll_improvement']]))$model[1])
 )
 plot(plot(BirdFlowR::route(
   model,
-  n=100)))
+  n=500)))
+
+##
+model <- BirdFlowR::import_birdflow(
+  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), 
+         (tmp[(tmp['mean_dist_cor']>0.95) & (tmp['mean_dist_cor']<0.97),] |> dplyr::arrange(-.data[['weighted_mean_ll_improvement']]))$model[1])
+)
+plot(plot(BirdFlowR::route(
+  model,
+  n=500)))
+
+##
+model <- BirdFlowR::import_birdflow(
+  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), 
+         (tmp[(tmp['mean_dist_cor']>0.97) & (tmp['mean_dist_cor']<0.99),] |> dplyr::arrange(-.data[['weighted_mean_ll_improvement']]))$model[1])
+)
+plot(plot(BirdFlowR::route(
+  model,
+  n=500)))
+
+##
+model <- BirdFlowR::import_birdflow(
+  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), 
+         (tmp[(tmp['mean_dist_cor']>0.98) & (tmp['mean_dist_cor']<0.99),] |> dplyr::arrange(-.data[['weighted_mean_ll_improvement']]))$model[1])
+)
+plot(plot(BirdFlowR::route(
+  model,
+  n=500)))
+
+##
+model <- BirdFlowR::import_birdflow(
+  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'),
+         (tmp[(tmp['mean_dist_cor']>0.99) & (tmp['mean_dist_cor']<0.995),] |> dplyr::arrange(-.data[['weighted_mean_ll_improvement']]))$model[1])
+)
+plot(plot(BirdFlowR::route(
+  model,
+  n=500)))
+
+##
+model <- BirdFlowR::import_birdflow(
+  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'),
+         (tmp[(tmp['mean_dist_cor']>0.995) & (tmp['mean_dist_cor']<1),] |> dplyr::arrange(-.data[['weighted_mean_ll_improvement']]))$model[1])
+)
+plot(plot(BirdFlowR::route(
+  model,
+  n=500)))
 
 
 ##
 model <- BirdFlowR::import_birdflow(
-  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), tmp[(tmp['mean_dist_cor']>0.98) & (tmp['mean_dist_cor']<1),]$model[1])
+  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), 
+         (tmp[(tmp['mean_dist_cor']>0.8),] |> dplyr::arrange(-.data[['weighted_mean_ll_improvement']]))$model[1])
+)
+plot(BirdFlowR::route(
+  model,
+  n=500))
+
+##
+model <- BirdFlowR::import_birdflow(
+  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), 
+         (tmp[(tmp['mean_dist_cor']>0.9),] |> dplyr::arrange(-.data[['weighted_mean_ll_improvement']]))$model[1])
+)
+plot(BirdFlowR::route(
+  model,
+  n=500))
+
+
+##
+model <- BirdFlowR::import_birdflow(
+  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), 
+         (tmp[(tmp['mean_dist_cor']>0.98),] |> dplyr::arrange(-.data[['weighted_energy_improvement']]))$model[1])
 )
 plot(plot(BirdFlowR::route(
   model,
-  n=100)))
+  n=500)))
+
+##
+model <- BirdFlowR::import_birdflow(
+  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), 
+         (tmp[(tmp['mean_dist_cor']>0.93),] |> dplyr::arrange(-.data[['weighted_energy_improvement']]))$model[1])
+)
+plot(plot(BirdFlowR::route(
+  model,
+  n=500)))
+
+
+##
+model <- BirdFlowR::import_birdflow(
+  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), 
+         (tmp[(tmp['mean_dist_cor']>0.9),] |> dplyr::arrange(-.data[['weighted_mean_ll_improvement']]))$model[1])
+)
+plot(plot(BirdFlowR::route(
+  model,
+  n=20)))
+
+xy = BirdFlowR::latlon_to_xy(lat=19, lon=-101, bf=model)
+plot(BirdFlowR::route(
+  model,
+  n=20,
+  x_coord=xy[['x']],
+  y_coord=xy[['y']]))
+
+xy = BirdFlowR::latlon_to_xy(lat=21, lon=-80, bf=model)
+plot(BirdFlowR::route(
+  model,
+  n=20,
+  x_coord=xy[['x']],
+  y_coord=xy[['y']],
+  direction='backward'))
+
+xy = BirdFlowR::latlon_to_xy(lat=52, lon=-101, bf=model)
+plot(BirdFlowR::route(
+  model,
+  n=20,
+  x_coord=xy[['x']],
+  y_coord=xy[['y']],
+  start=30,
+  end=1,
+  direction='backward'))
+
+xy = BirdFlowR::latlon_to_xy(lat=45, lon=-75, bf=model)
+plot(BirdFlowR::route(
+  model,
+  n=20,
+  x_coord=xy[['x']],
+  y_coord=xy[['y']],
+  start=30,
+  end=1,
+  direction='backward'))
+
+##
+model <- BirdFlowR::import_birdflow(
+  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), 
+         (tmp[(tmp['mean_dist_cor']>0.98),] |> dplyr::arrange(-.data[['weighted_mean_ll_improvement']]))$model[1])
+)
+plot(plot(BirdFlowR::route(
+  model,
+  n=500)))
+
+xy = BirdFlowR::latlon_to_xy(lat=19, lon=-101, bf=model)
+plot(BirdFlowR::route(
+  model,
+  n=20,
+  x_coord=xy[['x']],
+  y_coord=xy[['y']]))
+
+xy = BirdFlowR::latlon_to_xy(lat=52, lon=-101, bf=model)
+plot(BirdFlowR::route(
+  model,
+  n=20,
+  x_coord=xy[['x']],
+  y_coord=xy[['y']],
+  start=30,
+  end=1,
+  direction='backward'))
+
+
+##
+model <- BirdFlowR::import_birdflow(
+  paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), 
+         (tmp |> dplyr::arrange(-.data[['weighted_mean_ll_improvement']]))$model[1])
+)
+plot(plot(BirdFlowR::route(
+  model,
+  n=500)))
 
 
 ########## Plotting
@@ -137,52 +222,88 @@ plot(plot(BirdFlowR::route(
 library(ggplot2)
 # build the plot with one small‐multiple per species
 p <- ggplot(raw_combined, 
-            aes(x = min_dist_cor, 
+            aes(x = traverse_cor, 
                 y = weighted_mean_ll_improvement)) +
   geom_point(alpha = 0.6) +
   facet_wrap(~ sp, scales = "free") +
   labs(
-    x = "min_dist_cor",
+    x = "traverse_cor",
     y = "Weighted mean LL improvement"
   ) +
   theme_minimal()
 
 # save to PDF (all facets on one page)
-ggsave("species_plots_min_cor.pdf", p, 
+ggsave("species_plots_traverse_cor.pdf", p, 
        device = "pdf", 
        width  = 50, 
        height = 50, limitsize = FALSE)
 
 
-######## part 1: prediction metrics
-## plot 1
+p <- ggplot(raw_combined, 
+            aes(x = mean_dist_cor, 
+                y = weighted_mean_ll_improvement)) +
+  geom_point(alpha = 0.6) +
+  facet_wrap(~ sp, scales = "free") +
+  labs(
+    x = "mean_dist_cor",
+    y = "Weighted mean LL improvement"
+  ) +
+  theme_minimal()
+
+# save to PDF (all facets on one page)
+ggsave("species_plots_mean_cor.pdf", p, 
+       device = "pdf", 
+       width  = 50, 
+       height = 50, limitsize = FALSE)
+
+
+p <- ggplot(raw_combined, 
+            aes(x = weighted_mean_ll_improvement, 
+                y = pit_d)) +
+  geom_point(alpha = 0.6) +
+  facet_wrap(~ sp, scales = "free") +
+  labs(
+    x = "weighted_mean_ll_improvement",
+    y = "pit_d"
+  ) +
+  theme_minimal()
+
+# save to PDF (all facets on one page)
+ggsave("species_plots_LL_and_pit_d.pdf", p, 
+       device = "pdf", 
+       width  = 50, 
+       height = 50, limitsize = FALSE)
+
+
+# ######## part 1: prediction metrics
+# ## plot 1
+# 
+# for (metric in names(all_res)[4:length(names(all_res))]){
+#   # Boxplot for ll_improvement by method
+#   p1 <- ggplot(all_res, aes(x = method, y = .data[[metric]])) +
+#     geom_boxplot() +
+#     labs(title = metric, x = "Method", y = metric) +
+#     theme_bw() +
+#     theme(axis.text.x = element_text(angle = 20, vjust = 0.5, hjust = 1),
+#           plot.margin = margin(b = 20, unit = "pt"))
+#   print(p1)
+# }
+
+# ## with cor-S&T > 0.9 and. < 0.9, will the model perform differently?
+# library(ggpubr)
+# tmp <- all_res[all_res['method']=='LL',]
+# tmp$end_traverse_cor_over_09 <- tmp$end_traverse_cor>0.9
+# ggplot(data=tmp, aes(x=end_traverse_cor_over_09, y=weighted_mean_ll_improvement)) +
+#   geom_boxplot() +
+#   stat_compare_means(method = "t.test", label = "p.format")
+# 
+# ggplot(data=all_res, aes(x=method, y=end_traverse_cor)) +
+#   geom_boxplot() +
+#   theme(axis.text.x = element_text(angle = 20, vjust = 0.5, hjust = 1),
+#         plot.margin = margin(b = 20, unit = "pt"))
+# 
+
 library(ggplot2)
-
-for (metric in names(all_res)[4:length(names(all_res))]){
-  # Boxplot for ll_improvement by method
-  p1 <- ggplot(all_res, aes(x = method, y = .data[[metric]])) +
-    geom_boxplot() +
-    labs(title = metric, x = "Method", y = metric) +
-    theme_bw() +
-    theme(axis.text.x = element_text(angle = 20, vjust = 0.5, hjust = 1),
-          plot.margin = margin(b = 20, unit = "pt"))
-  print(p1)
-}
-
-## with cor-S&T > 0.9 and. < 0.9, will the model perform differently?
-library(ggpubr)
-tmp <- all_res[all_res['method']=='LL',]
-tmp$end_traverse_cor_over_09 <- tmp$end_traverse_cor>0.9
-ggplot(data=tmp, aes(x=end_traverse_cor_over_09, y=weighted_mean_ll_improvement)) +
-  geom_boxplot() +
-  stat_compare_means(method = "t.test", label = "p.format")
-
-ggplot(data=all_res, aes(x=method, y=end_traverse_cor)) +
-  geom_boxplot() +
-  theme(axis.text.x = element_text(angle = 20, vjust = 0.5, hjust = 1),
-        plot.margin = margin(b = 20, unit = "pt"))
-
-
 ### plot 2: mean_ll_improvement & mean_ll_improvement_quantile
 ggplot(data=all_res, aes(x=.data[['mean_ll_improvement']], y=.data[['mean_win_distance_fraction']], color=.data[['method']])) + 
   geom_point()
@@ -195,6 +316,34 @@ assign_color_category <- function(method) {
     "ST_and_LL_log"
   } else if (grepl("ST_and_energy_log", method)) {
     "ST_and_energy_log"
+  } else if (grepl("ST085_and_LL", method)) {
+    "ST085_and_LL"
+  } else if (grepl("ST085_and_energy_score", method)) {
+    "ST085_and_energy_score"
+  } else if (grepl("ST090_and_LL", method)) {
+    "ST090_and_LL"
+  } else if (grepl("ST090_and_energy_score", method)) {
+    "ST090_and_energy_score"
+  } else if (grepl("ST092_and_LL", method)) {
+    "ST092_and_LL"
+  } else if (grepl("ST092_and_energy_score", method)) {
+    "ST092_and_energy_score"
+  } else if (grepl("ST095_and_LL", method)) {
+    "ST095_and_LL"
+  } else if (grepl("ST095_and_energy_score", method)) {
+    "ST095_and_energy_score"
+  } else if (grepl("ST097_and_LL", method)) {
+    "ST097_and_LL"
+  } else if (grepl("ST097_and_energy_score", method)) {
+    "ST097_and_energy_score"
+  } else if (grepl("ST098_and_LL", method)) {
+    "ST098_and_LL"
+  } else if (grepl("ST098_and_energy_score", method)) {
+    "ST098_and_energy_score"
+  } else if (grepl("ST099_and_LL", method)) {
+    "ST099_and_LL"
+  } else if (grepl("ST099_and_energy_score", method)) {
+    "ST099_and_energy_score"
   } else if (grepl("ST_and_LL", method)) {
     "ST_and_LL"
   } else if (grepl("ST_and_energy", method)) {
@@ -216,19 +365,19 @@ assign_color_category <- function(method) {
 
 a <- all_res |>
   dplyr::group_by(.data[['method']]) |>
-  dplyr::select(c('mean_ll_improvement','mean_win_distance_fraction', 'pit_d', 'end_traverse_cor')) |>
+  dplyr::select(c('weighted_mean_ll_improvement','weighted_mean_win_distance', 'pit_d', 'mean_dist_cor')) |>
   dplyr::summarise(
-    mean_ll_improvement=mean(.data[['mean_ll_improvement']]),
-    mean_win_distance_fraction=mean(.data[['mean_win_distance_fraction']]),
+    mean_weighted_mean_ll_improvement=mean(.data[['weighted_mean_ll_improvement']]),
+    mean_weighted_mean_win_distance=mean(.data[['weighted_mean_win_distance']]),
     mean_pit_d=mean(.data[['pit_d']]),
-    mean_end_traverse_cor=mean(.data[['end_traverse_cor']])
+    mean_mean_dist_cor=mean(.data[['mean_dist_cor']])
   ) |>
   dplyr::mutate(color_category = sapply(method, assign_color_category))
 
 
 ggplot(data = a, 
-       aes(x = mean_ll_improvement, 
-           y = mean_win_distance_fraction, 
+       aes(x = mean_weighted_mean_ll_improvement, 
+           y = mean_weighted_mean_win_distance, 
            color = color_category,
            shape = factor(
              ifelse(grepl("daves_multiobjective", method),
@@ -240,6 +389,47 @@ ggplot(data = a,
   scale_shape_manual(name = "Method type", 
                      values = c("LOO" = 17, "Species-specific" = 16, "Others"=15))
 
+ggplot(data = a[a$method %in% c('ST_and_LL',
+                                'ST085_and_LL',
+                                'ST090_and_LL',
+                                'ST092_and_LL',
+                                'ST095_and_LL',
+                                'ST097_and_LL',
+                                'ST098_and_LL',
+                                'ST099_and_LL',
+                                'LOO_ST_and_LL',
+                                'LOO_ST085_and_LL',
+                                'LOO_ST090_and_LL',
+                                'LOO_ST092_and_LL',
+                                'LOO_ST095_and_LL',
+                                'LOO_ST097_and_LL',
+                                'LOO_ST098_and_LL',
+                                'LOO_ST099_and_LL'
+                                ),], 
+       aes(x = mean_weighted_mean_ll_improvement, 
+           y = mean_weighted_mean_win_distance, 
+           color = color_category,
+           shape = factor(
+             ifelse(grepl("daves_multiobjective", method),
+                    "Others",
+                    ifelse(grepl("^LOO", method), "LOO", "Species-specific")
+             )
+           ))) + 
+  geom_point(size = 10, alpha=0.8) +
+  scale_shape_manual(name = "Method type", 
+                     values = c("LOO" = 17, "Species-specific" = 16, "Others"=15))
+
+tmp = a[a$method %in% c('ST085_and_LL',
+                        'ST090_and_LL',
+                        'ST092_and_LL',
+                        'ST095_and_LL',
+                        'ST097_and_LL',
+                        'ST098_and_LL',
+                        'ST099_and_LL'),]
+ggplot(data=tmp, 
+       aes(x=as.factor(method), 
+           y=mean_weighted_mean_ll_improvement)
+       ) + geom_bar()
 
 # sp <- 'amered'
 # bf <- BirdFlowR::import_birdflow(paste0(glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/'), all_res[(all_res$method=='LL') & (all_res$sp==sp),]$model))

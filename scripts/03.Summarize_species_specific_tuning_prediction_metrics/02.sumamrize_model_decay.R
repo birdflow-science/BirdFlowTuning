@@ -8,136 +8,31 @@ library(dplyr)
 setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/03.Summarize_species_specific_tuning_prediction_metrics/')
 source('../plotting_params/plotting_params.R')
 source('../02.Summarize_validation_preliminary/load_data_functions.R')
-results <- read.csv('../../data/03.All_validation_summary/validation_final_summary_filtered.csv')
-results <- results |> dplyr::group_by(.data[['sp']]) |> dplyr::slice(1) |> dplyr::ungroup()
-
-regress <- function(data,
-                    response_var="win",
-                    predictor_var="elapsed",
-                    random_effect_var = "common_name",
-                    x_name = 'Elapsed (days)',
-                    y_name = "Win in distance (km)"
-){
-  
-  # overall model
-  formula <- as.formula(paste(response_var, "~", predictor_var, "+ (1|", random_effect_var, ")"))
-  # lmm_model <- lmer(formula, data = data)
-  # predictions <- ggpredict(lmm_model, terms = predictor_var)
-  data$group_n <- ave(data[[response_var]], data[[random_effect_var]], FUN=length)
-  lmm_w <- lmer(
-    formula,
-    data    = data,
-    weights = (1/group_n) / sum(1/group_n)
-  )
-  predictions <- ggpredict(lmm_w, terms = predictor_var)
-  
-  # each regression line for each species
-  formula = as.formula(paste0(response_var,' ~ ',predictor_var))
-  regression_result <- data |>
-    group_by(.data[[random_effect_var]]) |>
-    group_modify(~ {
-      # Fit the model within each group
-      model <- lm(formula, data = .x)
-      
-      # Extract the coefficients
-      data.frame(
-        slope = coef(model)[2],
-        intercept = coef(model)[1]
-      )
-    })
-  
-  regression_result <- na.omit(regression_result)
-  
-  all_data_reg <- data |>
-    left_join(regression_result, by = random_effect_var) |>
-    mutate(predicted = intercept + slope * .data[[predictor_var]])
-  
-  # Plot the regression line with confidence intervals
-  p <- ggplot() +
-    geom_line(data=predictions, aes(x = x, y = predicted), color = "steelblue", linewidth = 1) +  # Regression line
-    geom_ribbon(data=predictions, aes(x = x, y = predicted, ymin = conf.low, ymax = conf.high), alpha = 0.2, fill = "steelblue") +  # Confidence interval
-    geom_line(data=all_data_reg, aes(x=.data[[predictor_var]], y = predicted, group = .data[[random_effect_var]]), alpha=0.1) +
-    labs(
-      x = x_name,
-      y = y_name
-    ) +
-    my_plotting_params[['zero_hline']] +
-    my_plotting_params[['theme']] +
-    my_plotting_params[['formater']]
-  # 
-  
-  return(p)
-
-}
-
-regress_average_param <- function(data,
-                    response_var="win",
-                    predictor_var="elapsed",
-                    random_effect_var = "common_name",
-                    x_name = 'Elapsed (days)',
-                    y_name = "Win in distance (km)"
-){
-  
-  # each regression line for each species
-  formula = as.formula(paste0(response_var,' ~ ',predictor_var))
-  regression_result <- data |>
-    group_by(.data[[random_effect_var]]) |>
-    group_modify(~ {
-      model <- lm(formula, data = .x)
-      
-      data.frame(
-        slope = coef(model)[2],
-        intercept = coef(model)[1]
-      )
-    })
-  
-  regression_result <- na.omit(regression_result)
-  
-  all_data_reg <- data |>
-    left_join(regression_result, by = random_effect_var) |>
-    mutate(predicted = intercept + slope * .data[[predictor_var]])
-  
-  new_x <- seq(min(data[[predictor_var]]), max(data[[predictor_var]]), length.out=30)
-  combined_pred <- as.data.frame(list(
-    x = new_x,
-    pred = median(regression_result$intercept) +
-      median(regression_result$slope) * new_x
-  ))
-  
-  # Plot the regression line with confidence intervals
-  p <- ggplot() +
-    geom_line(data=all_data_reg, aes(x=.data[[predictor_var]], y = predicted, group = .data[[random_effect_var]]), alpha=0.1) +
-    geom_line(data=combined_pred, aes(x = x, y = pred), color = "steelblue", linewidth = 2) +
-    labs(
-      x = x_name,
-      y = y_name
-    ) +
-    my_plotting_params[['zero_hline']] +
-    my_plotting_params[['theme']] +
-    my_plotting_params[['formater']]
-  # 
-  
-  return(p)
-}
+results <- read.csv('../../data/03.All_validation_summary/validation_final_summary.csv')
+results <- results |> dplyr::group_by(.data[['sp']], .data[['method']]) |> dplyr::slice(1) |> dplyr::ungroup()
+results <- results[results$training_n_intervals>10,]
 
 
-
-fit_exponential_model <- function(tmp, x='elapsed_days', y='win_distance', B_initial = 0.05) {
+fit_exponential_model <- function(tmp, x='elapsed_days', y='win_distance',
+                                  B_initial = 0.001) {
   tmp$x <- tmp[[x]]
   tmp$y <- tmp[[y]]
-  # w <- 1 / (abs(tmp$y - threshold) + 1)
+  # w <- tmp[[weight]] + 1e-16
+  # w <- w / sum(w)
+
   start_vals <- list(
     A = max(tmp$y) - min(tmp$y),
-    B = B_initial,               # rough guess for decay rate
-    C = min(min(tmp$x), 0)        # offset guess
+    B = B_initial,     # rough guess for decay rate
+    C = 0        # offset guess
   )
   fit <- nlsLM(
     y ~ A * exp(-B * x) + C,
     data = tmp,
     start = start_vals,
     lower  = c(A = 0, B = 0, C = -Inf),
-    upper  = c(A = Inf, B = Inf, C = 0)
-    # weights = w
+    upper  = c(A = Inf, B = Inf, C = 0),
+    control=nls.lm.control(maxiter=1024),
+    # weights =  w
   )
   return(fit)
 }
@@ -151,7 +46,8 @@ get_x_intercept <- function(fit, threshold=150) {
 
   # check that a solution exists: threshold must lie between C and A+C
   if (threshold <= C) {
-    stop("Threshold is below the horizontal asymptote C; the curve never goes below this value.")
+    warning("Threshold is below the horizontal asymptote C; the curve never goes below this value.")
+    return(NA_real_)
   } else if (threshold >= A + C) {
     # stop("Threshold is above the starting value A+C; the curve starts below this value.")
     x_thresh <- 0
@@ -169,7 +65,8 @@ regress_exponential_decay <- function(data,
                                   random_effect_var = "common_name",
                                   x_name = 'Elapsed (days)',
                                   y_name = "Win in distance (km)",
-                                  threshold = 150
+                                  threshold = 150,
+                                  xmax=4000
 ){
   
   # each regression line for each species
@@ -188,13 +85,25 @@ regress_exponential_decay <- function(data,
       }
     })
   
-  regression_result_na_removed <- na.omit(regression_result)
+  regression_result_na_removed <- regression_result |> dplyr::filter(!is.na(A), !is.na(B), !is.na(C))
   
-  all_data_reg <- data |>
-    left_join(regression_result_na_removed, by = random_effect_var) |>
-    mutate(predicted = A * exp(-B * .data[[predictor_var]]) + C)
+  # all_data_reg <- data |>
+  #   left_join(regression_result_na_removed, by = random_effect_var) |>
+  #   mutate(predicted = A * exp(-B * .data[[predictor_var]]) + C)
+  new_x <- seq(min(data[[predictor_var]]), min(max(data[[predictor_var]]), xmax), length.out=100)
   
-  new_x <- seq(min(data[[predictor_var]]), max(data[[predictor_var]]), length.out=100)
+  preds_by_sp <- regression_result_na_removed |>
+    group_by(.data[[random_effect_var]]) |>
+    group_modify(~ {
+      A <- .x$A
+      B <- .x$B
+      C <- .x$C
+      data.frame(
+        x    = new_x,
+        pred = A * exp(-B * new_x) + C
+      )
+    })
+  
   combined_pred <- as.data.frame(list(
     x = new_x,
     pred = median(regression_result_na_removed$A) *
@@ -204,7 +113,7 @@ regress_exponential_decay <- function(data,
   
   # Plot the regression line with confidence intervals
   p <- ggplot() +
-    geom_line(data=all_data_reg, aes(x=.data[[predictor_var]], y = predicted, group = .data[[random_effect_var]]), alpha=0.1) +
+    geom_line(data=preds_by_sp, aes(x=x, y = pred, group = .data[[random_effect_var]]), alpha=0.1) +
     geom_line(data=combined_pred, aes(x = x, y = pred), color = "steelblue", linewidth = 2) +
     labs(
       x = x_name,
@@ -212,7 +121,8 @@ regress_exponential_decay <- function(data,
     ) +
     my_plotting_params[['zero_hline']] +
     my_plotting_params[['theme']] +
-    my_plotting_params[['formater']]
+    my_plotting_params[['formater']] +
+    xlim(0, xmax)
   # 
   
   return(list(p=p, regression_result=regression_result))
@@ -227,6 +137,12 @@ for (sp in results$sp |> unique()) {
   transitions <- readRDS(transition_file)
   if (nrow(transitions) < 10) {
     next
+  }
+  if (sum(transitions$elapsed_km>0)<5) {
+    next
+  }
+  if ('effective_win_distance' %in% colnames(transitions)) {
+    transitions <- transitions[,!(names(transitions) %in% "effective_win_distance")]
   }
   transitions$sp <- sp
   all_transitions[[length(all_transitions) + 1]] <- transitions
@@ -244,7 +160,8 @@ res <- regress_exponential_decay(
   random_effect_var = "sp",
   x_name = 'Elapsed time (days)',
   y_name = "Distance gain (km)",
-  threshold=150
+  threshold=150,
+  xmax=max(all_transitions$elapsed_days)
 )
 p <- res[['p']]
 regression_result <- res[['regression_result']]
@@ -265,10 +182,10 @@ res <- regress_exponential_decay(
   random_effect_var = "sp",
   x_name = 'Elapsed distance (km)',
   y_name = "Distance gain (km)",
-  threshold=150
+  threshold=150,
+  xmax=max(all_transitions$elapsed_km)
 )
 p <- res[['p']]
-p <- p + xlim(NA, 4000)
 regression_result <- res[['regression_result']]
 
 # save
@@ -287,16 +204,17 @@ res <- regress_exponential_decay(
   random_effect_var = "sp",
   x_name = 'Elapsed time (days)',
   y_name = "Relative distance gain",
-  threshold=0.05
+  threshold=0.05,
+  xmax=max(all_transitions$elapsed_days)
 )
-p <- res[['p']]
+p21 <- res[['p']]
 regression_result <- res[['regression_result']]
 
 # save
 write.csv(regression_result, '../../data/04.Sumamrize_prediction_metrics/02.03.regression_relative_distance_gain_elapsed_days.csv')
 cairo_pdf('../../data/04.Sumamrize_prediction_metrics/02.03.regression_relative_distance_gain_elapsed_days.pdf',
           width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
-print(p)
+print(p21)
 dev.off()
 
 
@@ -308,17 +226,17 @@ res <- regress_exponential_decay(
   random_effect_var = "sp",
   x_name = 'Elapsed distance (km)',
   y_name = "Relative distance gain",
-  threshold=0.05
+  threshold=0.05,
+  xmax=max(all_transitions$elapsed_km)
 )
-p <- res[['p']]
-p <- p + xlim(NA, 4000)
+p22 <- res[['p']]
 regression_result <- res[['regression_result']]
 
 # save
 write.csv(regression_result, '../../data/04.Sumamrize_prediction_metrics/02.04.regression_relative_distance_gain_elapsed_km.csv')
 cairo_pdf('../../data/04.Sumamrize_prediction_metrics/02.04.regression_relative_distance_gain_elapsed_km.pdf',
           width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
-print(p)
+print(p22)
 dev.off()
 
 
@@ -330,16 +248,17 @@ res <- regress_exponential_decay(
   random_effect_var = "sp",
   x_name = 'Elapsed time (days)',
   y_name = "Log likelihood improvement",
-  threshold=0.05
+  threshold=0.05,
+  xmax=max(all_transitions$elapsed_days)
 )
-p <- res[['p']]
+p11 <- res[['p']]
 regression_result <- res[['regression_result']]
 
 # save
 write.csv(regression_result, '../../data/04.Sumamrize_prediction_metrics/02.05.regression_LL_elapsed_days.csv')
 cairo_pdf('../../data/04.Sumamrize_prediction_metrics/02.05.regression_LL_elapsed_days.pdf',
           width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
-print(p)
+print(p11)
 dev.off()
 
 
@@ -351,49 +270,72 @@ res <- regress_exponential_decay(
   random_effect_var = "sp",
   x_name = 'Elapsed distance (km)',
   y_name = "Log likelihood improvement",
-  threshold=0.05
+  threshold=0.05,
+  xmax=800
 )
-p <- res[['p']]
-p <- p + xlim(NA, 800)
+p12 <- res[['p']]
 regression_result <- res[['regression_result']]
 
 # save
 write.csv(regression_result, '../../data/04.Sumamrize_prediction_metrics/02.06.regression_LL_elapsed_km.csv')
 cairo_pdf('../../data/04.Sumamrize_prediction_metrics/02.06.regression_LL_elapsed_km.pdf',
           width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
-print(p)
+print(p12)
 dev.off()
 
 ## plot 7: summarize model decay x_intercept
 decay_intercept <- read.csv('../../data/04.Sumamrize_prediction_metrics/02.04.regression_relative_distance_gain_elapsed_km.csv')
 decay_intercept <- na.omit(decay_intercept)
 decay_intercept <- decay_intercept[decay_intercept$x_intercept<=10000,]
-
-p <- ggplot(data=decay_intercept, aes(x=.data[['x_intercept']])) +
+mean_dist <- decay_intercept$x_intercept |> na.omit() |> mean()
+p23 <- ggplot(data=decay_intercept, aes(x=.data[['x_intercept']])) +
   geom_histogram() +
   my_plotting_params[['zero_vline']] +
   labs(x = "Maximum functional elapse distance (km)\n for relative distance gain", y = 'Species count') +
   my_plotting_params[['theme']] +
-  my_plotting_params[['formater']]
+  my_plotting_params[['formater']]  +
+  annotate(
+    "label",
+    x     = Inf, 
+    y     = Inf, 
+    label = paste0("Mean: ", sprintf("%.2f", mean_dist), ' km'),
+    hjust = 1.1, 
+    vjust = 1.5, 
+    fill= NA,
+    label.size = 0,
+    size=8
+  )
 
 # save
 cairo_pdf('../../data/04.Sumamrize_prediction_metrics/02.07.hist_regression_relative_distance_gain_elapsed_km.pdf',
           width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
-print(p)
+print(p23)
 dev.off()
 
 ## plot 8
 decay_intercept <- read.csv('../../data/04.Sumamrize_prediction_metrics/02.02.regression_distance_gain_elapsed_km.csv')
 decay_intercept <- na.omit(decay_intercept)
 decay_intercept <- decay_intercept[decay_intercept$x_intercept<=10000,]
-max(decay_intercept$x_intercept)
+mean_dist <- decay_intercept$x_intercept |> na.omit() |> mean()
 p <- ggplot(data=decay_intercept, aes(x=.data[['x_intercept']])) +
   geom_histogram() +
   my_plotting_params[['zero_vline']] +
   labs(x = "Maximum functional elapse distance (km)\n for distance gain", y = 'Species count') +
   my_plotting_params[['theme']] +
   my_plotting_params[['formater']]+
-  xlim(NA, 6646.544 +1)
+  xlim(NA, 6646.544 +1)  +
+  annotate(
+    "label",
+    x     = Inf, 
+    y     = Inf, 
+    label = paste0("Mean: ", sprintf("%.2f", mean_dist), ' km'),
+    hjust = 1.1, 
+    vjust = 1.5, 
+    fill= NA,
+    label.size = 0,
+    size=8
+  )
+p
 
 # save
 cairo_pdf('../../data/04.Sumamrize_prediction_metrics/02.08.hist_regression_distance_gain_elapsed_km.pdf',
@@ -405,20 +347,50 @@ dev.off()
 decay_intercept <- read.csv('../../data/04.Sumamrize_prediction_metrics/02.06.regression_LL_elapsed_km.csv')
 decay_intercept <- na.omit(decay_intercept)
 decay_intercept <- decay_intercept[decay_intercept$x_intercept<=10000,]
-
-p <- ggplot(data=decay_intercept, aes(x=.data[['x_intercept']])) +
+mean_dist <- decay_intercept$x_intercept |> na.omit() |> mean()
+p13 <- ggplot(data=decay_intercept, aes(x=.data[['x_intercept']])) +
   geom_histogram() +
   my_plotting_params[['zero_vline']] +
   labs(x = "Maximum functional elapse distance (km)\n for log likelihood improvement", y = 'Species count') +
   my_plotting_params[['theme']] +
   my_plotting_params[['formater']] +
-  xlim(NA, 6646.544 +1)
+  xlim(NA, 6646.544 +1) +
+  annotate(
+    "label",
+    x     = Inf, 
+    y     = Inf, 
+    label = paste0("Mean: ", sprintf("%.2f", mean_dist), ' km'),
+    hjust = 1.1, 
+    vjust = 1.5, 
+    fill= NA,
+    label.size = 0,
+    size=8
+  )
 
 # save
 cairo_pdf('../../data/04.Sumamrize_prediction_metrics/02.08.hist_regression_LL_elapsed_km.pdf',
           width = my_plotting_params[['single_plot_width']], height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
-print(p)
+print(p13)
 dev.off()
+
+
+
+#### Combine together
+library(patchwork)
+pp <- (p11 + theme(plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")) + p12 + theme(plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")) + p13 + theme(plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")))/
+  (p21 + theme(plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")) + p22 + theme(plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")) + p23 + theme(plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")))
+
+pp <- pp + plot_annotation(tag_levels = list(c('(a)','(b)','(c)','(d)','(e)','(f)'))) & 
+  theme(
+    plot.tag = element_text(size = 25, face = "bold"),
+    plot.tag.position  = c(0.01, 1)
+  )
+
+cairo_pdf('../../data/04.Sumamrize_prediction_metrics/ALL_model_decay_COMBINED.pdf',
+          width = my_plotting_params[['single_plot_width']]*2.5, height = my_plotting_params[['single_plot_height']]*1.3, family = my_plotting_params[['font']])
+print(pp)
+dev.off()
+
 
 
 

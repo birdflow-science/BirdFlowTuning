@@ -7,7 +7,7 @@ setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/06.Summarize_
 source('../plotting_params/plotting_params.R')
 # source('../02.Summarize_validation_preliminary/load_data_functions.R')
 
-all_res <- read.csv('../../data/03.All_validation_summary/validation_final_summary_filtered.csv')
+all_res <- read.csv('../../data/03.All_validation_summary/validation_final_summary.csv')
 all_res <- all_res |> dplyr::group_by(.data[['sp']], .data[['method']]) |> dplyr::slice(1) |> dplyr::ungroup()
 
 ## 01. Load data
@@ -94,6 +94,10 @@ p <- ggplot(df2) +
     x     = "Proportion of transitions",
     y     = NULL,
     fill  = "Data type"
+  ) +
+  my_plotting_params[['theme']] +
+  theme(
+    axis.text.y = element_text(size = 16)
   )
 
 cairo_pdf('../../data/07.Summarize_data_composition/data_composition.pdf',

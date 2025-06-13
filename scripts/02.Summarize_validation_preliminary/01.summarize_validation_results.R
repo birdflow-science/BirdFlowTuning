@@ -9,6 +9,12 @@ setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/02.Summarize_
 
 source('load_data_functions.R')
 
+# paths <-c()
+# for (sp in c('acafly', 'ameavo')) {
+#   path <- glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km_interval_based_eval_using_migration_transitions')
+#   paths <- c(paths, path)
+# }
+
 ### Step 1: load validation data
 ## load data of all models in grid search
 res <- load_raw_validation_all_sp(search_cv=F)
@@ -16,7 +22,8 @@ raw_combined <- res[['raw_combined']]
 raw_combined_with_tracking <-  res[['raw_combined_with_tracking']]
 
 ## Summarize the best models based on model selection method
-res <- load_best_models_validation_all_sp(raw_combined, raw_combined_with_tracking, search_cv=F, include_taxomany_LOO=TRUE)
+res <- load_best_models_validation_all_sp(raw_combined, raw_combined_with_tracking, 
+                                          search_cv=F, include_taxomany_LOO=TRUE)
 all_res <- res[['all_res']] # this will be saved later, after merging with other information
 all_res_with_tracking <- res[['all_res_with_tracking']]
 

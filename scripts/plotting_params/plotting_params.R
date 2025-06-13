@@ -17,13 +17,15 @@ my_plotting_params[['theme']] <- theme(
     fill   = NA, 
     linewidth   = 1
   ),
-  axis.title.x = element_text(size = 18),
-  axis.title.y = element_text(size = 18),
-  axis.text.x = element_text(size = 12),
-  axis.text.y = element_text(size = 12),
-  legend.title = element_text(size = 16),
-  legend.text = element_text(size = 14)
+  axis.title.x = element_text(size = 24),
+  axis.title.y = element_text(size = 24),
+  axis.text.x = element_text(size = 17),
+  axis.text.y = element_text(size = 17),
+  legend.title = element_text(size = 18),
+  legend.text = element_text(size = 16)
 )
+
+
 
 my_plotting_params[['formater']] <- ggh4x::force_panelsizes(rows = unit(5, "in"),
                           cols = unit(5, "in"))
