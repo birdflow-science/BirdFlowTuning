@@ -6,6 +6,8 @@ source('../plotting_params/plotting_params.R')
 ## 01. plot randomforest fits
 RF_regression <- list()
 param_count <- 0
+new_param_name <- list(ent='\u03B2 (entropy weight)',pow='\u03B5 (distance exponent)',dist='\u03B1 (distance weight)')
+
 for (param_name in c('ent', 'pow', 'dist')) {
   modeled_results_train <- read.csv(glue::glue('../../data/08.Regression_for_hyperparameters/train_y_cv_true_y_pred_df_{param_name}.csv'))
   # modeled_results_test <- read.csv(glue::glue('../../data/08.Regression_for_hyperparameters/test_y_true_y_pred_df_{param_name}.csv'))
@@ -39,12 +41,12 @@ for (param_name in c('ent', 'pow', 'dist')) {
       "label",
       x     = -Inf, 
       y     = Inf, 
-      label = param_name,
-      hjust = -0.5, 
+      label = new_param_name[[param_name]],
+      hjust = -0.1, 
       vjust = 1.5, 
       fill= NA,
       label.size = 0,
-      size=10
+      size=7
     ) +
     annotate(
       "label",
@@ -93,7 +95,7 @@ p_mass_ent <- ggplot(data=validation_summary, aes(x=Mass, y=ent, fill=ORDER1_eBi
   scale_fill_manual(values = pal, name = "Order") +
   geom_smooth(method='lm', fill='steelblue', color='steelblue', alpha=0.2) +
   scale_x_log10() +
-  labs(x='Body mass (g)') +
+  labs(x='Body mass (g)', y=new_param_name[['ent']]) +
   my_plotting_params[['theme']] +
   my_plotting_params[['formater']] +
   annotate(
@@ -125,7 +127,7 @@ p_mass_dist <- ggplot(data=validation_summary, aes(x=Mass, y=dist, fill=ORDER1_e
   scale_fill_manual(values = pal, name = "Order") +
   geom_smooth(method='lm', fill='steelblue', color='steelblue', alpha=0.2) +
   scale_x_log10() +
-  labs(x='Body mass (g)') +
+  labs(x='Body mass (g)', y=new_param_name[['dist']]) +
   my_plotting_params[['theme']] +
   my_plotting_params[['formater']] +
   annotate(
@@ -157,7 +159,8 @@ p_postbreeding_abundance_variation_pow <- ggplot(data=validation_summary, aes(x=
   scale_fill_manual(values = pal, name = "Order") +
   geom_smooth(method='lm', fill='steelblue', color='steelblue', alpha=0.2) +
   scale_x_log10() +
-  labs(x='Spatial unevenness of average\nabundance during post-breeding migration') +
+  labs(x='Spatial unevenness of average\nabundance during post-breeding migration',
+       y=new_param_name[['pow']]) +
   my_plotting_params[['theme']] +
   my_plotting_params[['formater']] +
   annotate(
