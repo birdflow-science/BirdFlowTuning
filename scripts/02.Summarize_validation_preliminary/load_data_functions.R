@@ -33,6 +33,7 @@ load_evaluation <- function(path, search_cv, type='train_distance_metric') {
   if (is.null(interval_based)) {
     print(glue::glue('Not using CV: method type - {type}'))
     non_cv_file_path <- paste0(path, glue::glue('/eval_metrics_{type}_all_combined.rds'))
+    print(non_cv_file_path)
     if (!file.exists(non_cv_file_path)) {
       if (!type=='train_multi_objective') {
         print('No evaluation results found.')
@@ -45,6 +46,8 @@ load_evaluation <- function(path, search_cv, type='train_distance_metric') {
   
   ## QC
   if (!all(c("traverse_cor_st","connectivity_diff") %in% names(interval_based))) {
+    print(colnames(interval_based))
+    # print("!all(c(\"traverse_cor_st\",\"connectivity_diff\") %in% names(interval_based))")
     return(NULL)
   }
   for (needed_name in c('obs_mc_prebreeding', 'sim_mc_prebreeding', 'sim_mc_rangewide_prebreeding',
@@ -58,6 +61,7 @@ load_evaluation <- function(path, search_cv, type='train_distance_metric') {
     (!is.na(.data[['pit_row']])) & (!is.na(.data[['pit_col']])) & (!is.na(.data[['pit_in_95']]))
   )
   if (nrow(interval_based) == 0){
+    print("(nrow(interval_based) == 0)")
     return(NULL)
   }
   
@@ -76,7 +80,7 @@ load_evaluation <- function(path, search_cv, type='train_distance_metric') {
   interval_based$model_param <- sub(".*_20[0-9]{2}_150km_(.*)\\.hdf5$", "\\1", interval_based$model)
   
   
-  ### futher
+  ### further
   interval_based$mean_win_distance_fraction_quantile <- (interval_based$mean_win_distance_fraction - min(interval_based$mean_win_distance_fraction))/(max(interval_based$mean_win_distance_fraction) - min(interval_based$mean_win_distance_fraction))
   interval_based$mean_ll_improvement_quantile <- (interval_based$mean_ll_improvement - min(interval_based$mean_ll_improvement))/(max(interval_based$mean_ll_improvement) - min(interval_based$mean_ll_improvement))
   interval_based$ST09_threshold_LL_distance_score <- scale(interval_based$weighted_mean_win_distance) + scale(interval_based$weighted_mean_ll_improvement)

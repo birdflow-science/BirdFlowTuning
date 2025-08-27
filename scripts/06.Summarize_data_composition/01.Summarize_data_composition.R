@@ -67,7 +67,7 @@ df2 <- df2 |> merge(y_df[,c('common_name', 'ymin', 'ymax')],
 
 
 ## 03. Plot
-y_df$new_label <- ifelse(y_df$sp_index > (max(y_df$sp_index) - 30), y_df$common_name, '.')
+y_df$new_label <- ifelse(y_df$sp_index > (max(y_df$sp_index) - 50), y_df$common_name, '.')
 
 p <- ggplot(df2) +
   geom_rect(aes(xmin = xmin, xmax = xmax,

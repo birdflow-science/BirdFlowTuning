@@ -116,14 +116,23 @@ LOO_summary <- res |>
 # print(LOO_summary[,-1] |> colMeans())
 # print(LOO_summary[,-1] |> colSums())
 
-print(paste0('Number of species species-specific > ALL-LOO: ', sum(LOO_summary$LL_sp_specific_over_LOO |> na.omit() > 0)))
-print(paste0('Proportion of species species-specific > ALL-LOO: ', mean(LOO_summary$LL_sp_specific_over_LOO |> na.omit() > 0)))
+print(paste0('LL: Number of species species-specific > ALL-LOO: ', sum(LOO_summary$LL_sp_specific_over_LOO |> na.omit() > 0)))
+print(paste0('LL: Proportion of species species-specific > ALL-LOO: ', mean(LOO_summary$LL_sp_specific_over_LOO |> na.omit() > 0)))
 
-print(paste0('Number of species Family-LOO > ALL-LOO: ', sum(LOO_summary$LL_familly_LOO_over_LOO |> na.omit()> 0)))
-print(paste0('Proportion of species Family-LOO > ALL-LOO: ', mean(LOO_summary$LL_familly_LOO_over_LOO |> na.omit()> 0)))
+print(paste0('LL: Number of species Family-LOO > ALL-LOO: ', sum(LOO_summary$LL_familly_LOO_over_LOO |> na.omit()> 0)))
+print(paste0('LL: Proportion of species Family-LOO > ALL-LOO: ', mean(LOO_summary$LL_familly_LOO_over_LOO |> na.omit()> 0)))
 
-print(paste0('Number of species Order-LOO > ALL-LOO: ', sum(LOO_summary$LL_order_LOO_over_LOO |> na.omit()> 0)))
-print(paste0('Proportion of species Order-LOO > ALL-LOO: ', mean(LOO_summary$LL_order_LOO_over_LOO|> na.omit() > 0)))
+print(paste0('LL: Number of species Order-LOO > ALL-LOO: ', sum(LOO_summary$LL_order_LOO_over_LOO |> na.omit()> 0)))
+print(paste0('LL: Proportion of species Order-LOO > ALL-LOO: ', mean(LOO_summary$LL_order_LOO_over_LOO|> na.omit() > 0)))
+
+print(paste0('Relative distance gain: Number of species species-specific > ALL-LOO: ', sum(LOO_summary$rela_distance_gain_sp_specific_over_LOO |> na.omit() > 0)))
+print(paste0('Relative distance gain: Proportion of species species-specific > ALL-LOO: ', mean(LOO_summary$rela_distance_gain_sp_specific_over_LOO |> na.omit() > 0)))
+
+print(paste0('Relative distance gain: Number of species Family-LOO > ALL-LOO: ', sum(LOO_summary$rela_distance_gain_familly_LOO_over_LOO |> na.omit()> 0)))
+print(paste0('Relative distance gain: Proportion of species Family-LOO > ALL-LOO: ', mean(LOO_summary$rela_distance_gain_familly_LOO_over_LOO |> na.omit()> 0)))
+
+print(paste0('Relative distance gain: Number of species Order-LOO > ALL-LOO: ', sum(LOO_summary$rela_distance_gain_order_LOO_over_LOO |> na.omit()> 0)))
+print(paste0('Relative distance gain: Proportion of species Order-LOO > ALL-LOO: ', mean(LOO_summary$rela_distance_gain_order_LOO_over_LOO|> na.omit() > 0)))
 
 
 print(paste0('LL improvement: species species-specific - ALL-LOO: ', mean(LOO_summary$LL_sp_specific_over_LOO |> na.omit())))

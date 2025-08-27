@@ -63,7 +63,7 @@ regress_exponential_decay <- function(data,
                                   response_var="win",
                                   predictor_var="elapsed",
                                   random_effect_var = "common_name",
-                                  x_name = 'Elapsed (days)',
+                                  x_name = 'Time horizon (days)',
                                   y_name = "Win in distance (km)",
                                   threshold = 150,
                                   xmax=4000
@@ -158,7 +158,7 @@ res <- regress_exponential_decay(
   predictor_var="elapsed_days",
   response_var="win_distance",
   random_effect_var = "sp",
-  x_name = 'Elapsed time (days)',
+  x_name = 'Time horizon (days)',
   y_name = "Distance gain (km)",
   threshold=150,
   xmax=max(all_transitions$elapsed_days)
@@ -180,7 +180,7 @@ res <- regress_exponential_decay(
   predictor_var="elapsed_km",
   response_var="win_distance",
   random_effect_var = "sp",
-  x_name = 'Elapsed distance (km)',
+  x_name = 'Distance horizon (km)',
   y_name = "Distance gain (km)",
   threshold=150,
   xmax=max(all_transitions$elapsed_km)
@@ -202,7 +202,7 @@ res <- regress_exponential_decay(
   predictor_var="elapsed_days",
   response_var="win_distance_fraction",
   random_effect_var = "sp",
-  x_name = 'Elapsed time (days)',
+  x_name = 'Time horizon (days)',
   y_name = "Relative distance gain",
   threshold=0.05,
   xmax=max(all_transitions$elapsed_days)
@@ -224,7 +224,7 @@ res <- regress_exponential_decay(
   predictor_var="elapsed_km",
   response_var="win_distance_fraction",
   random_effect_var = "sp",
-  x_name = 'Elapsed distance (km)',
+  x_name = 'Distance horizon (km)',
   y_name = "Relative distance gain",
   threshold=0.05,
   xmax=max(all_transitions$elapsed_km)
@@ -246,7 +246,7 @@ res <- regress_exponential_decay(
   predictor_var="elapsed_days",
   response_var="LL_improvement",
   random_effect_var = "sp",
-  x_name = 'Elapsed time (days)',
+  x_name = 'Time horizon (days)',
   y_name = "Log likelihood improvement",
   threshold=0.05,
   xmax=max(all_transitions$elapsed_days)
@@ -268,7 +268,7 @@ res <- regress_exponential_decay(
   predictor_var="elapsed_km",
   response_var="LL_improvement",
   random_effect_var = "sp",
-  x_name = 'Elapsed distance (km)',
+  x_name = 'Distance horizon (km)',
   y_name = "Log likelihood improvement",
   threshold=0.05,
   xmax=800
@@ -291,7 +291,7 @@ mean_dist <- decay_intercept$x_intercept |> na.omit() |> mean()
 p23 <- ggplot(data=decay_intercept, aes(x=.data[['x_intercept']])) +
   geom_histogram() +
   my_plotting_params[['zero_vline']] +
-  labs(x = "Maximum functional elapse distance (km)\n for relative distance gain", y = 'Species count') +
+  labs(x = "Maximum functional distance horizon (km)\n for relative distance gain", y = 'Species count') +
   my_plotting_params[['theme']] +
   my_plotting_params[['formater']]  +
   annotate(
@@ -320,7 +320,7 @@ mean_dist <- decay_intercept$x_intercept |> na.omit() |> mean()
 p <- ggplot(data=decay_intercept, aes(x=.data[['x_intercept']])) +
   geom_histogram() +
   my_plotting_params[['zero_vline']] +
-  labs(x = "Maximum functional elapse distance (km)\n for distance gain", y = 'Species count') +
+  labs(x = "Maximum functional distance horizon (km)\n for distance gain", y = 'Species count') +
   my_plotting_params[['theme']] +
   my_plotting_params[['formater']]+
   xlim(NA, 6646.544 +1)  +
@@ -351,7 +351,7 @@ mean_dist <- decay_intercept$x_intercept |> na.omit() |> mean()
 p13 <- ggplot(data=decay_intercept, aes(x=.data[['x_intercept']])) +
   geom_histogram() +
   my_plotting_params[['zero_vline']] +
-  labs(x = "Maximum functional elapse distance (km)\n for log likelihood improvement", y = 'Species count') +
+  labs(x = "Maximum functional distance horizon (km)\n for log likelihood improvement", y = 'Species count') +
   my_plotting_params[['theme']] +
   my_plotting_params[['formater']] +
   xlim(NA, 6646.544 +1) +

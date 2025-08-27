@@ -216,7 +216,6 @@ dev.off()
 # 2. x: all-LOO; y: Family-LOO
 # 3. x: all-LOO; y: Order-LOO
 all_res <- all_res[all_res$base_method=="ST098_and_LL",]
-all_res$method
 
 all_res_long <- all_res[,c('sp', 'method_variation', 'weighted_mean_ll_improvement')] |> 
   dplyr::group_by(.data[['sp']], .data[['method_variation']]) |> 
@@ -691,6 +690,53 @@ pp <- p1 + theme(legend.position = "none") + theme(plot.margin = unit(c(0, 0.5, 
 cairo_pdf('../../data/06.Compare_species_specific_and_LOO/12.All_LOO_COMBINED.pdf',
           width = my_plotting_params[['single_plot_width']]*2.5, height = my_plotting_params[['single_plot_height']], family = my_plotting_params[['font']])
 print(pp)
+dev.off()
+
+
+### For AOS presentation: barplot
+all_res <- all_res[all_res$base_method=="ST098_and_LL",]
+all_res_long <- all_res[,c('sp', 'method_variation', 'weighted_mean_win_distance')] |> 
+  dplyr::group_by(.data[['sp']], .data[['method_variation']]) |> 
+  dplyr::slice(1) |>
+  dplyr::ungroup() |>
+  tidyr::pivot_wider(
+    id_cols = sp,
+    names_from = method_variation,
+    values_from = weighted_mean_win_distance
+  )
+
+# subtract
+all_res_long$`Species-specific` <- all_res_long$`species-specific`
+all_res_long$`Family-LOO` <- all_res_long$`LOO_FAMILY`
+all_res_long$`Order-LOO` <- all_res_long$`LOO_ORDER`
+
+all_res_long$`All-LOO` <- all_res_long$LOO - all_res_long$`Species-specific`
+all_res_long$`Family-LOO` <- all_res_long$`Family-LOO` - all_res_long$`Species-specific`
+all_res_long$`Order-LOO` <- all_res_long$`Order-LOO` - all_res_long$`Species-specific`
+
+df_long <- all_res_long |>
+  dplyr::select(`All-LOO`, `Family-LOO`, `Order-LOO`) |>
+  tidyr::pivot_longer(
+    cols = everything(),
+    names_to = "method",
+    values_to = "worse"
+  ) |> 
+  dplyr::group_by(method) |>
+  dplyr::summarize(
+    mean_ = mean(worse, na.rm = T),
+    std_ = sd(worse, na.rm = T)
+  )
+
+df_long$method <- factor(df_long$method, levels = c("All-LOO", "Order-LOO", "Family-LOO"))
+                       
+p1 <- ggplot(df_long) +
+  geom_bar(aes(x=method, y=mean_), stat="identity", fill="steelblue", alpha=0.9) +
+  labs(x='', y='Distance gain (km)\ncompared to species-specific models') +
+  my_plotting_params[['theme']]
+
+cairo_pdf('../../data/06.Compare_species_specific_and_LOO/13.Barplot_for_AOS1.pdf',
+          width = my_plotting_params[['single_plot_width']]*0.7, height = my_plotting_params[['single_plot_height']]*0.7, family = my_plotting_params[['font']])
+print(p1)
 dev.off()
 
 

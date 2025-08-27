@@ -1,5 +1,5 @@
 library(ggplot2)
-RF_metrics_summary <- read.csv('../../data/08.Regression_for_hyperparameters/all_metrics.csv')
+RF_metrics_summary <- read.csv('../../data/08.Regression_for_hyperparameters/all_metrics_nestedCV.csv')
 
 source('../plotting_params/plotting_params.R')
 
@@ -9,33 +9,18 @@ param_count <- 0
 new_param_name <- list(ent='\u03B2 (entropy weight)',pow='\u03B5 (distance exponent)',dist='\u03B1 (distance weight)')
 
 for (param_name in c('ent', 'pow', 'dist')) {
-  modeled_results_train <- read.csv(glue::glue('../../data/08.Regression_for_hyperparameters/train_y_cv_true_y_pred_df_{param_name}.csv'))
+  modeled_results_train <- read.csv(glue::glue('../../data/08.Regression_for_hyperparameters/y_and_oof_pred_by_{param_name}.csv'))
   # modeled_results_test <- read.csv(glue::glue('../../data/08.Regression_for_hyperparameters/test_y_true_y_pred_df_{param_name}.csv'))
   param_count <- param_count+1
   
   p <- ggplot() + 
-    # geom_jitter(data=modeled_results_train, aes(x=y_train, y=y_train_pred),
-    #             shape = 21, size=3, alpha=0.9,
-    #             fill = "steelblue",
-    #             color = "black",
-    #             stroke = 0.5,
-    #             width = 0, height = 0) +
-    # geom_smooth(data=modeled_results_train, aes(x=y_train, y=y_train_pred, color='Train'), method='lm', fill='steelblue', alpha=0.2) + 
-    geom_jitter(data=modeled_results_train, aes(x=y, y=y_pred),
+    geom_jitter(data=modeled_results_train, aes(x=y, y=oof_pred),
                   shape = 21, size=3, alpha=0.9,
                   fill = "orange2",
                   color = "black",
                   stroke = 0.5,
                   width = 0, height = 0) +
-    geom_smooth(data=modeled_results_train, aes(x=y, y=y_pred), method='lm', color='orange2', fill='orange2', alpha=0.2) +
-    # scale_color_manual(
-    #   name   = "Phase",
-    #   values = c(
-    #     # "Train" = "steelblue",
-    #     "Train"  = "orange2"
-    #   ),
-    #   breaks = c("Train") #,"Test"
-    # ) +
+    geom_smooth(data=modeled_results_train, aes(x=y, y=oof_pred), method='lm', color='orange2', fill='orange2', alpha=0.2) +
     labs(x='Observed hyperparameters', y='Modeled hyperparameters') +
     annotate(
       "label",
@@ -53,7 +38,7 @@ for (param_name in c('ent', 'pow', 'dist')) {
       x     = -Inf,
       y     = Inf,
       label = paste0('R\u00B2: ',
-                     round(RF_metrics_summary[RF_metrics_summary$hyperparameter==param_name,]$r2, 2)),
+                     round(RF_metrics_summary[RF_metrics_summary$target==param_name,]$r2_pooled_oof, 2)),
       hjust = -2.6,
       vjust = 12,
       fill= NA,
@@ -150,8 +135,8 @@ print(p_mass_dist)
 dev.off()
 
 ## p3
-cor_ = cor(log(validation_summary$postbreeding_abundance_variation), validation_summary$pow, use='complete.obs')
-p_postbreeding_abundance_variation_pow <- ggplot(data=validation_summary, aes(x=postbreeding_abundance_variation, y=pow, fill=ORDER1_eBird))+
+cor_ = cor(log(validation_summary$breeding_abundance_variation), validation_summary$pow, use='complete.obs')
+p_breeding_abundance_variation_pow <- ggplot(data=validation_summary, aes(x=breeding_abundance_variation, y=pow, fill=ORDER1_eBird))+
   geom_jitter(shape = 21, size=3, alpha=0.9,
               color = "black",
               stroke = 0.5,
@@ -159,7 +144,7 @@ p_postbreeding_abundance_variation_pow <- ggplot(data=validation_summary, aes(x=
   scale_fill_manual(values = pal, name = "Order") +
   geom_smooth(method='lm', fill='steelblue', color='steelblue', alpha=0.2) +
   scale_x_log10() +
-  labs(x='Spatial unevenness of average\nabundance during post-breeding migration',
+  labs(x='Spatial unevenness of average\nabundance in breeding season',
        y=new_param_name[['pow']]) +
   my_plotting_params[['theme']] +
   my_plotting_params[['formater']] +
@@ -175,11 +160,11 @@ p_postbreeding_abundance_variation_pow <- ggplot(data=validation_summary, aes(x=
     label.size = 0,
     size=7
   )
-p_postbreeding_abundance_variation_pow
+p_breeding_abundance_variation_pow
 
-cairo_pdf('../../data/08.Regression_for_hyperparameters/06.postbreeding_abundance_variation_pow_regression.pdf',
+cairo_pdf('../../data/08.Regression_for_hyperparameters/06.breeding_abundance_variation_pow_regression.pdf',
           width = my_plotting_params[['single_plot_width']]*1.5, height = my_plotting_params[['single_plot_height']]*1.5, family = my_plotting_params[['font']])
-print(p_postbreeding_abundance_variation_pow)
+print(p_breeding_abundance_variation_pow)
 dev.off()
 
 
@@ -200,7 +185,7 @@ print(ss)
 new_validation_summary <- cbind(validation_summary, as.data.frame(pca_res$x))
 
 
-
+### plot PCA
 p_pca <- ggplot(data=new_validation_summary, aes(x=PC1, y=PC2, fill=ORDER1_eBird))+
   geom_jitter(shape = 21, size=3, alpha=0.9,
               color = "black",
@@ -478,4 +463,33 @@ cairo_pdf('../../data/08.Regression_for_hyperparameters/08.ALL_COMBINED.pdf',
 print(pp)
 dev.off()
 
+### See the PCs' correlation with species traits
+library(ggcorrplot)
+num <- new_validation_summary[sapply(new_validation_summary, is.numeric)]
+num <- num[,c('PC1', 'PC2', 'PC3', 'nonbreeding_lon_max', 'breeding_range_size', 'Beak_Length_Nares',
+              'breeding_lon_c', 'breeding_lat_c', 'Wing_Length', 'breeding_lat_max',
+              'nonbreeding_lat_max', 'Mass', 'Beak_Width', 'nonbreeding_range_size',
+              'Hand.Wing_Index', 'postbreeding_lon_max', 'breeding_lat_min',
+              'breeding_abundance_variation', 'breeding_lon_max',
+              'ent', 'dist', 'pow')]
+min_n <- 3
+good_cols <- sapply(num, function(x) sum(!is.na(x)) >= min_n && sd(x, na.rm = TRUE) > 0)
+num <- num[, good_cols, drop = FALSE]
+M <- cor(num, use = "pairwise.complete.obs")
+keep <- apply(M, 1, function(x) all(is.finite(x)))
+M <- M[keep, keep, drop = FALSE]
+if (ncol(M) >= 2) {
+  p_cor <- ggcorrplot(M, hc.order = F,
+                      # type = "lower",
+                      lab = TRUE, lab_size = 2.5,
+                      colors = c("blue", "white", "red"),
+                      tl.cex = 10)
+} else {
+  message("Not enough variables left for a correlation plot.")
+}
+
+cairo_pdf('../../data/08.Regression_for_hyperparameters/09.cor_plot.pdf',
+          width = my_plotting_params[['single_plot_width']]*1.5, height = my_plotting_params[['single_plot_height']]*1.5, family = my_plotting_params[['font']])
+print(p_cor + my_plotting_params[['formater']])
+dev.off()
 
