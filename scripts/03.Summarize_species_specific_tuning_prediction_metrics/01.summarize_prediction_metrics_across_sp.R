@@ -3,8 +3,6 @@ setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/03.Summarize_
 source('../plotting_params/plotting_params.R')
 results <- read.csv('../../data/03.All_validation_summary/validation_final_summary.csv')
 results <- results |> dplyr::group_by(.data[['sp']], .data[['method']]) |> dplyr::slice(1) |> dplyr::ungroup()
-# write.csv(as.data.frame(results[results$method=='ST098_and_LL',]),
-#           '/work/pi_drsheldon_umass_edu/birdflow_modeling/yangkang/best_model_set/best_models_byST098_and_LL.csv')
 
 
 ## Plot 1: Species specific-tuning actually works!
@@ -62,10 +60,6 @@ p <- ggplot(data=results[results$method=='ST098_and_LL',],
   my_plotting_params[['zero_vline']] +
   my_plotting_params[['zero_hline']] +
   ylim(-500,NA)+
-  # ggrepel::geom_text_repel(data=results[(results$method=='ST098_and_LL') & (results$weighted_mean_win_distance>3000),],
-  #                          aes(label = common_name), size = 3, max.overlaps = 20, max.time = 3) +
-  # ggrepel::geom_text_repel(data=results[(results$method=='ST098_and_LL') & (results$weighted_mean_win_distance<=3000),],
-  #                          aes(label = common_name), size = 3, max.overlaps = 30, box.padding = 0.4, max.time = 3) +
   ggrepel::geom_text_repel(aes(label = common_name), size = 3, max.overlaps = 30, max.time = 3, force=5, force_pull=5,
                            max.iter=5000) +
   ggrepel::geom_text_repel(data=results[(results$method=='ST098_and_LL') & (results$weighted_mean_win_distance<1000) & (results$weighted_mean_ll_improvement>3) & (results$weighted_mean_ll_improvement<6),],

@@ -2,9 +2,9 @@
 
 Code for:
 
-Integrating multi-source data to infer population-level migration movement of North America's migratory birds
+Population-level migration modeling of North America’s birds through data integration with BirdFlow
 
-Data and tuned models are available at: https://doi.org/10.5281/zenodo.16985511
+Intermediate data and tuned models are available at: https://doi.org/10.5281/zenodo.16985511
 
 --------
 
@@ -12,7 +12,7 @@ Data and tuned models are available at: https://doi.org/10.5281/zenodo.16985511
 
 - `scripts/01.Run_validation_more_species`
    
-Train and validate BirdFlow models using BirdFlowPipelne package.
+Train and validate BirdFlow models using [BirdFlowPipelne](https://github.com/birdflow-science/BirdFlowPipeline) package.
 
 - `scripts/02.Summarize_validation_preliminary`
 
@@ -20,11 +20,11 @@ After fitting the 225 grid search and validate each model, summarize the validat
 
 - `scripts/03.Summarize_species_specific_tuning_prediction_metrics`
 
-Summarize the predictive metrids. Including log likelihood improvement and distance gain, and the performance decay along space and time.
+Summarize the predictive metrics. Including log likelihood improvement and distance gain, and the performance decay along space and time.
 
 - `scripts/04.Summarize_species_specific_tuning_bio_metrics`
 
-Sumamrize the biological features of the tuned models. Including the validation of migraiton speed, straightness, and number of stopovers.
+Summarize the biological features of the tuned models. Including the validation of migration speed, straightness, and number of stopovers.
 
 - `scripts/05.Compare_species_specific_and_LOO`
 

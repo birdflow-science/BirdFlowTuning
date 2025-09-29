@@ -4,16 +4,7 @@ library(devtools)
 
 setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/02.Summarize_validation_preliminary/')
 
-# load_all("/home/yc85_illinois_edu/BirdFlowPipeline") # if only r script is changed, you can do it. Otherwise reinstall.
-# load_all("/home/yc85_illinois_edu/BirdFlowR") # if only r script is changed, you can do it. Otherwise reinstall.
-
 source('load_data_functions.R')
-
-# paths <-c()
-# for (sp in c('acafly', 'ameavo')) {
-#   path <- glue::glue('/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km_interval_based_eval_using_migration_transitions')
-#   paths <- c(paths, path)
-# }
 
 ### Step 1: load validation data
 ## load data of all models in grid search

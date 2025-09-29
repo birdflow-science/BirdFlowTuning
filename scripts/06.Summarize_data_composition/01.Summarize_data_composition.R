@@ -20,19 +20,19 @@ tmp <- tmp |> dplyr::arrange(-.data[['total_training_n_intervals']])
 df2 <- tmp |>
   # compute total & log‐thickness
   dplyr::mutate(
-    total  = train_n_banding + train_n_motus + train_n_tracking,
+    total = train_n_banding + train_n_motus + train_n_tracking,
     logtot = total**(1/2), #log(total, base=1.001)
   ) |> 
   dplyr::arrange(-.data[['total']]) |>
   tidyr::pivot_longer(
-    cols      = dplyr::starts_with("train_n_"),
+    cols = dplyr::starts_with("train_n_"),
     names_to  = "data_type",
     values_to = "n"
   ) |>
   dplyr::mutate(
     data_type = dplyr::recode(data_type,
                        train_n_banding  = "Banding",
-                       train_n_motus    = "Motus",
+                       train_n_motus  = "Motus",
                        train_n_tracking = "Tracking")
   ) |>
   dplyr::arrange(.data[['total']], common_name, data_type) |>

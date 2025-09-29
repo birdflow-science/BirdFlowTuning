@@ -22,7 +22,7 @@ fit_exponential_model <- function(tmp, x='elapsed_days', y='win_distance',
 
   start_vals <- list(
     A = max(tmp$y) - min(tmp$y),
-    B = B_initial,     # rough guess for decay rate
+    B = B_initial,   # rough guess for decay rate
     C = 0        # offset guess
   )
   fit <- nlsLM(
@@ -87,9 +87,6 @@ regress_exponential_decay <- function(data,
   
   regression_result_na_removed <- regression_result |> dplyr::filter(!is.na(A), !is.na(B), !is.na(C))
   
-  # all_data_reg <- data |>
-  #   left_join(regression_result_na_removed, by = random_effect_var) |>
-  #   mutate(predicted = A * exp(-B * .data[[predictor_var]]) + C)
   new_x <- seq(min(data[[predictor_var]]), min(max(data[[predictor_var]]), xmax), length.out=100)
   
   preds_by_sp <- regression_result_na_removed |>

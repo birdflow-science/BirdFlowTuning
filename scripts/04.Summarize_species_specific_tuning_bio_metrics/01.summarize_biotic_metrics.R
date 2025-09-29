@@ -168,6 +168,9 @@ df_long <- df_wide |>
     values_from = value
   )
 
+# Rename sp code to common name
+df_long <- df_long |> merge(ebirdst::ebirdst_runs[,c('species_code','common_name')], all.x = T, by.x='sp', by.y='species_code')
+
 ## 4) Coerce quantiles/real to numeric (now they’re vectors, not lists)
 df_long <- df_long |>
   mutate(across(c(q0025, q0250, q0750, q0975, real), ~ suppressWarnings(as.numeric(.))))
@@ -175,7 +178,7 @@ df_long <- df_long |>
 ## 5) Drop rows without an empirical value; order within species × metric
 df_long <- df_long |>
   filter(!is.na(real)) |>
-  group_by(sp, metric) |>
+  group_by(common_name, metric) |>
   mutate(
     mid95 = (q0025 + q0975) / 2,
     row_in_panel = factor(order(order(mid95)))  # ordered y for each facet
@@ -187,23 +190,23 @@ set.seed(42)
 per_panel_n <- 30  # random sample
 
 # Order species and metrics (3 rows)
-sp_levels     <- sort(unique(df_long$sp))
+sp_levels <- sort(unique(df_long$common_name))
 metric_levels <- c("straightness", "n_stopovers", "speed")
 metric_labels <- c(
   straightness = "Route straightness",
   n_stopovers  = "# Stopovers",
-  speed        = "Speed (m/day)"
+  speed  = "Speed (m/day)"
 )
 
 # Build plotting dataframe
 df_plot <- df_long |>
   filter(!is.na(real), !is.na(q0250), !is.na(q0750)) |>
   mutate(
-    sp     = factor(sp, levels = sp_levels),
+    common_name  = factor(common_name, levels = sp_levels),
     metric = factor(metric, levels = metric_levels),
     mid50  = (q0250 + q0750) / 2
   ) |>
-  group_by(sp, metric) |>
+  group_by(common_name, metric) |>
   group_modify(~ {
     n_take <- if (is.na(per_panel_n)) nrow(.x) else min(per_panel_n, nrow(.x))
     .x[sample.int(nrow(.x), n_take), , drop = FALSE]
@@ -244,8 +247,8 @@ p <- ggplot(df_plot, aes(y = y_rank)) +
   ) +
   ggh4x::facet_grid2(
     rows  = vars(metric),
-    cols  = vars(sp),
-    scales = "free",          # free both axes
+    cols  = vars(common_name),
+    scales = "free",  # free both axes
     independent = "all",      # ← FIX: make x and y independent per panel
     labeller = labeller(metric = metric_labels)
   ) +
@@ -340,7 +343,7 @@ p <- ggplot(df_plot[df_plot$metric == "speed", ], aes(y = y_rank)) +
     legend.text = element_text(size = 12, margin = margin(t = 5, b = 5)),
     axis.title.x = element_text(size = 15, margin = margin(t = 5, b = 5))
   ) +
-  facet_wrap(~ sp, nrow = 2, scales = "free") +
+  facet_wrap(~ common_name, nrow = 2, scales = "free") +
   scale_y_continuous(breaks = NULL, expand = expansion(add = 0.5))  +
   theme(
     text = element_text(family = "Arial"),
@@ -363,14 +366,16 @@ dev.off()
 
 ####### 03. Only plot straightness and n_stopovers
 # Base plot
-df_plot <- df_plot |>
+df_plot2 <- df_plot
+df_plot2$common_name <- gsub(' ', '\n', df_plot2$common_name)
+df_plot2 <- df_plot2 |>
   # filter(metric %in% c("straightness", "n_stopovers")) |>
   mutate(
     collapsed95 = ifelse(q0025 == q0975, 1, 0),
     collapsed50 = ifelse(q0250 == q0750, 1, 0)
   )
 
-p <- ggplot(df_plot[df_plot$metric %in% c('straightness', 'n_stopovers'), ], aes(y = y_rank)) +
+p <- ggplot(df_plot2[df_plot2$metric %in% c('straightness', 'n_stopovers'), ], aes(y = y_rank)) +
   geom_errorbarh(aes(xmin = q0025, xmax = q0975, colour = "Simulated 95% (2.5–97.5%)"),
                  height = 0) +
   geom_errorbarh(aes(xmin = q0250, xmax = q0750, colour = "Simulated 50% (25–75%)"),
@@ -395,7 +400,7 @@ p <- ggplot(df_plot[df_plot$metric %in% c('straightness', 'n_stopovers'), ], aes
   ) +
   ggh4x::facet_grid2(
     rows  = vars(metric),
-    cols  = vars(sp),
+    cols  = vars(common_name),
     scales = "free",          # free both axes
     independent = "all",      # ← FIX: make x and y independent per panel
     labeller = labeller(metric = metric_labels)
@@ -457,12 +462,23 @@ print(p)
 dev.off()
 
 ### Summarize quantitatively
-calibration_summary <- df_plot |>
-  dplyr::group_by(sp, metric) |>
-  dplyr::summarize('95cali'=mean(real>=q0025 & real<=q0975),
+calibration_summary <- df_long |>
+  filter(!is.na(real), !is.na(q0250), !is.na(q0750)) |>
+  mutate(
+    common_name     = factor(common_name, levels = sp_levels),
+    metric = factor(metric, levels = metric_levels),
+    mid50  = (q0250 + q0750) / 2
+  ) |>
+  group_by(common_name, metric) |>
+  arrange(mid50, .by_group = TRUE) |>
+  mutate(y_rank = dplyr::row_number()) |>
+  ungroup() |>
+  dplyr::group_by(common_name, metric) |>
+  dplyr::summarize('n_tracks'=dplyr::n(),
+                  '95cali'=mean(real>=q0025 & real<=q0975),
                    '50cali'=mean(real>=q0250 & real<=q0750)) |>
   dplyr::ungroup() |>
-  dplyr::arrange(metric, sp)
+  dplyr::arrange(metric, common_name)
 
 write.csv(calibration_summary, '../../data/05.Summarize_biological_metrics/biometrics_calibration_summary.csv')
 

@@ -6,7 +6,6 @@ setwd('/home/yc85_illinois_edu/BirdFlow_Validation_Project/scripts/07.Regression
 
 ##
 all_res <- read.csv('../../data/03.All_validation_summary/validation_final_summary_filtered.csv')
-# results <- results |> dplyr::group_by(.data[['sp']], .data[['method']]) |> dplyr::slice(1) |> dplyr::ungroup()
 # Keep all the rows for potential phylogenetic regression
 all_res <- all_res[all_res$method=='ST098_and_LL',]
 

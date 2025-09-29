@@ -437,25 +437,19 @@ p1 <- ggplot(df_long, aes(x = LOO, fill = method)) +
   facet_wrap(~ method, ncol = 1, scales = "free_y") +
   scale_fill_manual(values = c(
     "Species-specific" = "steelblue",
-    "Family-LOO"       = "orange2",
-    "Order-LOO"        = "green3"
+    "Family-LOO" = "orange2",
+    "Order-LOO" = "green3"
   )) +
   my_plotting_params[['theme']] +
   theme(
     panel.background = element_blank(),    # no gray
-    panel.grid       = element_blank(),    # no grid
-    axis.line        = element_blank(),    # remove default axes
-    panel.border     = element_rect(       # add a black border
+    panel.grid  = element_blank(),    # no grid
+    axis.line = element_blank(),    # remove default axes
+    panel.border = element_rect(       # add a black border
       colour = "black", 
       fill   = NA, 
       linewidth   = 1
     ),
-    # axis.title.x = element_text(size = 18),
-    # axis.title.y = element_text(size = 18),
-    # axis.text.x = element_text(size = 12),
-    # axis.text.y = element_text(size = 12),
-    # legend.title = element_text(size = 16),
-    # legend.text = element_text(size = 14),
     strip.text = element_text(size = 16, face = "bold"),
     legend.position = "none"
   ) + 
@@ -466,10 +460,10 @@ p1 <- ggplot(df_long, aes(x = LOO, fill = method)) +
     data = label_df,
     aes(x = x, y = y, label = label),
     inherit.aes = FALSE,
-    hjust = 1,         # right‐justify the whole block
+    hjust = 1,    # right‐justify the whole block
     vjust = 1.3,       # nudge it down inside the top
     size = 6,
-    fill = NA,        # transparent background
+    fill = NA,   # transparent background
     label.size = 0,         # no border
     lineheight = 0.9        # tighten the two‐line height if you split label on "\n"
   )
@@ -491,9 +485,6 @@ all_res_long <- all_res[,c('sp', 'method_variation', 'weighted_mean_win_distance
     names_from = method_variation,
     values_from = weighted_mean_win_distance_fraction
   )
-# is_na <- is.na(all_res_long$LOO_FAMILY)
-# all_res_long$LOO_FAMILY <- ifelse(is.na(all_res_long$LOO_FAMILY), all_res_long[['species-specific']], all_res_long$LOO_FAMILY)
-# all_res_long$LOO_ORDER <- ifelse(is.na(all_res_long$LOO_ORDER), all_res_long[['species-specific']], all_res_long$LOO_ORDER)
 
 # subtract
 all_res_long$LOO_FAMILY <- all_res_long$LOO_FAMILY - all_res_long$LOO
@@ -520,8 +511,8 @@ label_df <- df_long |>
   summarise(mean_delta = mean(LOO, na.rm = TRUE), .groups = "drop") |>
   mutate(
     label = sprintf("Mean Δimprovement =  \n%.3f  ", mean_delta),
-    x     = Inf,    # right edge
-    y     = Inf     # top edge
+    x = Inf,    # right edge
+    y= Inf     # top edge
   )
 
 
@@ -534,25 +525,19 @@ p2 <- ggplot(df_long, aes(x = LOO, fill = method)) +
   facet_wrap(~ method, ncol = 1, scales = "free_y") +
   scale_fill_manual(values = c(
     "Species-specific" = "steelblue",
-    "Family-LOO"       = "orange2",
-    "Order-LOO"        = "green3"
+    "Family-LOO"= "orange2",
+    "Order-LOO"     = "green3"
   )) +
   my_plotting_params[['theme']] +
   theme(
     panel.background = element_blank(),    # no gray
-    panel.grid       = element_blank(),    # no grid
-    axis.line        = element_blank(),    # remove default axes
+    panel.grid   = element_blank(),    # no grid
+    axis.line  = element_blank(),    # remove default axes
     panel.border     = element_rect(       # add a black border
       colour = "black", 
       fill   = NA, 
       linewidth   = 1
     ),
-    # axis.title.x = element_text(size = 18),
-    # axis.title.y = element_text(size = 18),
-    # axis.text.x = element_text(size = 12),
-    # axis.text.y = element_text(size = 12),
-    # legend.title = element_text(size = 16),
-    # legend.text = element_text(size = 14),
     strip.text = element_text(size = 16, face = "bold"),
     legend.position = "none"
   ) + 
@@ -588,9 +573,6 @@ all_res_long <- all_res[,c('sp', 'method_variation', 'weighted_mean_win_distance
     names_from = method_variation,
     values_from = weighted_mean_win_distance
   )
-# is_na <- is.na(all_res_long$LOO_FAMILY)
-# all_res_long$LOO_FAMILY <- ifelse(is.na(all_res_long$LOO_FAMILY), all_res_long[['species-specific']], all_res_long$LOO_FAMILY)
-# all_res_long$LOO_ORDER <- ifelse(is.na(all_res_long$LOO_ORDER), all_res_long[['species-specific']], all_res_long$LOO_ORDER)
 
 # subtract
 all_res_long$LOO_FAMILY <- all_res_long$LOO_FAMILY - all_res_long$LOO
@@ -643,12 +625,6 @@ p <- ggplot(df_long, aes(x = LOO, fill = method)) +
       fill   = NA, 
       linewidth   = 1
     ),
-    # axis.title.x = element_text(size = 18),
-    # axis.title.y = element_text(size = 18),
-    # axis.text.x = element_text(size = 12),
-    # axis.text.y = element_text(size = 12),
-    # legend.title = element_text(size = 16),
-    # legend.text = element_text(size = 14),
     strip.text = element_text(size = 16, face = "bold"),
     legend.position = "none"
   ) + 
