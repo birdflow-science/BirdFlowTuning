@@ -8,11 +8,28 @@ Intermediate data and tuned models are available at: https://doi.org/10.5281/zen
 
 --------
 
+## LICENSE
+
+Shield: [![CC BY 4.0][cc-by-shield]][cc-by]
+
+This work is licensed under a
+[Creative Commons Attribution 4.0 International License][cc-by].
+
+[![CC BY 4.0][cc-by-image]][cc-by]
+
+[cc-by]: http://creativecommons.org/licenses/by/4.0/
+[cc-by-image]: https://i.creativecommons.org/l/by/4.0/88x31.png
+[cc-by-shield]: https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg
+
+--------
+
 ## Structure
 
 - `scripts/01.Run_validation_more_species`
    
-Train and validate BirdFlow models using [BirdFlowPipelne](https://github.com/birdflow-science/BirdFlowPipeline) package.
+Train and validate BirdFlow models using [BirdFlowPipelne](https://github.com/birdflow-science/BirdFlowPipeline) package. 
+`BirdFlowPipeline` package is the workhorse to fit and validate those models.
+The rest of the steps in this repository is mainly for summarizing the results and making figures.
 
 - `scripts/02.Summarize_validation_preliminary`
 

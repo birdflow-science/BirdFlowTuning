@@ -10,6 +10,7 @@
 !*.txt
 !*.R
 !.gitignore
+!LICENSE
 
 # Include directories (otherwise, Git won't look inside them for .py files)
 !*/
