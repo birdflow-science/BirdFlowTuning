@@ -5,6 +5,12 @@ results <- read.csv('../../data/03.All_validation_summary/validation_final_summa
 results <- results |> dplyr::group_by(.data[['sp']], .data[['method']]) |> dplyr::slice(1) |> dplyr::ungroup()
 results <- results[results$method=='ST098_and_LL',]
 
+results$path <- mapply(function(sp, model) {
+  glue::glue("/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/model_output_hyperparams_distance_metric/{sp}/{sp}_150km/{model}")
+}, results$sp, results$model)
+write.csv(results, '/project/pi_drsheldon_umass_edu/birdflow/batch_model_validation/best_models_ST098_and_LL.csv')
+
+
 for (row_idx in 1:nrow(results)) {
   print(row_idx)
   sp_code <- results[row_idx, ]$sp
