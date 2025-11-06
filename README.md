@@ -27,7 +27,7 @@ This work is licensed under a
 
 - `scripts/01.Run_validation_more_species`
    
-Train and validate BirdFlow models using [BirdFlowPipelne](https://github.com/birdflow-science/BirdFlowPipeline) package. 
+Train and validate BirdFlow models using [BirdFlowPipeline](https://github.com/birdflow-science/BirdFlowPipeline) package. 
 `BirdFlowPipeline` package is the workhorse to fit and validate those models.
 The rest of the steps in this repository is mainly for summarizing the results and making figures.
 
@@ -63,5 +63,7 @@ Simulate migration routes using BirdFlow and the case study of phenology. To giv
 
 Calculate some numbers for the Result part of the manuscript.
 
+- `scripts/12.Sensitivity_analysis`
 
+Sensitivity analysis for the quantile trimming.
 
